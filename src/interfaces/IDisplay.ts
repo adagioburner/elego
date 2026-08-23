@@ -6,4 +6,5 @@ export interface IDisplay {
   showInvalidMoveError(message: string): void; // Provides feedback when a user clicks an invalid square
   bindSquareClick(callback: (move: Move) => void): void;
   showOverlay(message: string): void;
+  hideOverlay(): void;
 }

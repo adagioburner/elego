@@ -16,6 +16,7 @@ export class UIManager {
   public inputAiThinkTime: HTMLInputElement | null;
   public selectAiSimulationMode: HTMLSelectElement | null;
   public checkboxToggleStats: HTMLInputElement | null;
+  public checkboxToggleSound: HTMLInputElement | null;
   public btnSaveOptions: HTMLButtonElement | null;
 
   // Stat Elements
@@ -38,6 +39,7 @@ export class UIManager {
     this.inputAiThinkTime = document.getElementById('ai-think-time') as HTMLInputElement;
     this.selectAiSimulationMode = document.getElementById('ai-simulation-mode') as HTMLSelectElement;
     this.checkboxToggleStats = document.getElementById('toggle-stats-checkbox') as HTMLInputElement;
+    this.checkboxToggleSound = document.getElementById('toggle-sound-checkbox') as HTMLInputElement;
     this.btnSaveOptions = document.getElementById('btn-save-options') as HTMLButtonElement;
 
     this.statNodesSearched = document.getElementById('stat-nodes-searched');
@@ -71,6 +73,23 @@ export class UIManager {
         this.gameStatsPanel.classList.add('hidden');
       }
     }
+  }
+
+  /**
+   * Clears all messages from the panel.
+   */
+  public clearMessages(): void {
+    if (this.messageList) {
+      this.messageList.innerHTML = '';
+    }
+  }
+
+  public isSoundEnabled(): boolean {
+    return this.checkboxToggleSound?.checked ?? true;
+  }
+
+  public getAiThinkTimeMs(): number {
+    return parseInt(this.inputAiThinkTime?.value || '1000', 10);
   }
 
   /**
