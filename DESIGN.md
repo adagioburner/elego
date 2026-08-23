@@ -203,3 +203,22 @@ To ensure robustness, the project will implement a suite of unit and integration
 - **Engine + Display:** Apply a move programmatically via the engine and ensure the Display module receives the correct state slice to update the DOM.
 - **Full Simulation (Headless):** Run a full loop of two AI instances (or one AI and one random mover) playing against each other from start to finish. Ensure no infinite loops, state desyncs, or unhandled errors occur.
 - **Heuristic Toggle Configuration:** Verify that switching the AI configuration from 'RandomRollout' to 'ProximityHeuristic' successfully alters the execution path inside the `calculateBestMove` method.
+
+## 8. User Interface
+
+The EleGo user interface is built using standard HTML5 and CSS3, styled to be clean and responsive. The interface consists of several core components defined in `index.html` and managed in TypeScript via `src/ui/UIManager.ts`.
+
+### 8.1. Start Controls
+Located in the left panel, these buttons allow the human player to start a new game by choosing to play either first (Black) or second (White).
+
+### 8.2. Game Messages Panel
+Also located in the left panel, this component displays a scrolling list of game events (e.g., "Game Started", "AI played at E4", "Human wins!"). It provides a history of actions to the user.
+
+### 8.3. Board Container
+The central component of the UI. This is where the 8x8 game board is dynamically rendered by the Display module. It acts as the interactive surface for human moves.
+
+### 8.4. Options Dialog
+Accessed via the "Options" button in the header, this native `<dialog>` element contains configurations for the AI. Users can set the "AI Think Time" and select the "Simulation Mode" (e.g., Random Rollout vs Proximity Heuristic). It also includes a toggle to show or hide the Game Statistics panel.
+
+### 8.5. Game Statistics Panel
+Located in the right panel (hidden by default), this section displays real-time metrics from the Computer Player, such as nodes searched, time elapsed, and estimated win probability. It helps users understand the AI's "thought process."

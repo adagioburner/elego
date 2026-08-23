@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EleGo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <h1>EleGo</h1>
+      <button id="options-btn">Options</button>
+    </header>
+
+    <main class="main-content">
+      <aside class="left-panel">
+        <div id="start-controls" class="panel">
+          <h2>New Game</h2>
+          <button id="btn-play-first">Play First (Black)</button>
+          <button id="btn-play-second">Play Second (White)</button>
+        </div>
+
+        <div id="game-messages" class="panel">
+          <h2>Messages</h2>
+          <ul id="message-list">
+            <li>Welcome to EleGo!</li>
+          </ul>
+        </div>
+      </aside>
+
+      <section class="board-section">
+        <div id="board-container">
+          <!-- The 8x8 game board will be rendered here by Display.ts -->
+        </div>
+      </section>
+
+      <aside class="right-panel">
+        <div id="game-stats" class="panel hidden">
+          <h2>Game Statistics</h2>
+          <div class="stat-item">
+            <span class="stat-label">AI Nodes Searched:</span>
+            <span id="stat-nodes-searched">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">AI Time Elapsed (ms):</span>
+            <span id="stat-time-elapsed">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">AI Win Probability:</span>
+            <span id="stat-win-probability">0%</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <dialog id="options-dialog">
+      <form method="dialog">
+        <h2>Game Options</h2>
+
+        <div class="form-group">
+          <label for="ai-think-time">AI Think Time (ms):</label>
+          <input type="number" id="ai-think-time" name="aiThinkTime" value="1000" min="100" step="100">
+        </div>
+
+        <div class="form-group">
+          <label for="ai-simulation-mode">AI Simulation Mode:</label>
+          <select id="ai-simulation-mode" name="aiSimulationMode">
+            <option value="RandomRollout">Random Rollout</option>
+            <option value="ProximityHeuristic">Proximity Heuristic</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="toggle-stats-checkbox">
+            Show Game Statistics
+          </label>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="submit" id="btn-save-options">Save & Close</button>
+        </div>
+      </form>
+    </dialog>
+  </div>
+
+  <!-- Main entry point will be injected by the build tool (e.g. Webpack/Vite) -->
+  <!-- <script type="module" src="src/index.ts"></script> -->
+</body>
+</html>
