@@ -54,8 +54,8 @@ interface IGameController {
 ### 4.2. Display Module Interface
 ```typescript
 interface IDisplay {
-  renderBoard(state: GameState): void;
-  highlightValidMoves(moves: Move[]): void;
+  renderBoard(state: GameState): void; // Should visually highlight state.lastMove to indicate the AI's recent move
+  showInvalidMoveError(message: string): void; // Provides feedback when a user clicks an invalid square
   bindSquareClick(callback: (move: Move) => void): void;
   showOverlay(message: string): void;
 }
