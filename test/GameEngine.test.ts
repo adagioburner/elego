@@ -1,4 +1,4 @@
-import { GameEngine } from '../src/components/GameEngine';
+import { GameEngine, BOARD_SIZE } from '../src/components/GameEngine';
 import { Player } from '../src/interfaces/Player';
 
 describe('GameEngine', () => {
@@ -13,8 +13,8 @@ describe('GameEngine', () => {
       engine.initializeGame();
       const state = engine.getGameState();
 
-      expect(state.board.length).toBe(8);
-      expect(state.board[0].length).toBe(8);
+      expect(state.board.length).toBe(BOARD_SIZE);
+      expect(state.board[0].length).toBe(BOARD_SIZE);
       state.board.forEach(row => {
         row.forEach(cell => {
           expect(cell).toBe(Player.None);
@@ -27,12 +27,25 @@ describe('GameEngine', () => {
   });
 
   describe('Initial phase (Turns 1-6)', () => {
-    it('should allow placement on any empty square', () => {
+    it('should allow placement on any empty square on turn 1', () => {
       engine.initializeGame();
       const state = engine.getGameState();
 
       const validMoves = engine.getValidMoves(state);
-      expect(validMoves.length).toBe(64); // 8x8 empty squares
+      expect(validMoves.length).toBe(BOARD_SIZE * BOARD_SIZE); // 8x8 empty squares
+    });
+
+    it('should allow placement on any empty square after a few moves', () => {
+      engine.initializeGame();
+
+      engine.applyMoveToCurrent({ x: 3, y: 3 }); // Turn 1
+      engine.applyMoveToCurrent({ x: 4, y: 4 }); // Turn 2
+      engine.applyMoveToCurrent({ x: 3, y: 4 }); // Turn 3
+
+      const state = engine.getGameState();
+      const validMoves = engine.getValidMoves(state);
+
+      expect(validMoves.length).toBe((BOARD_SIZE * BOARD_SIZE) - (state.turnNumber - 1));
     });
   });
 
@@ -64,7 +77,7 @@ describe('GameEngine', () => {
       const validMoves = engine.getValidMoves(state);
       // Valid adjacent spaces to B's pieces at (3,3), (3,4), (2,3)
       // They are scattered. Let's make sure it doesn't just return all empty spaces
-      expect(validMoves.length).toBeLessThan(64 - 6);
+      expect(validMoves.length).toBeLessThan((BOARD_SIZE * BOARD_SIZE) - 6);
 
       // E.g., (2,2) is adjacent to (3,3) and (2,3)
       expect(validMoves.some(m => m.x === 2 && m.y === 2)).toBe(true);
@@ -142,7 +155,7 @@ describe('GameEngine', () => {
       // We will fill the whole board with White, except one Black piece which is surrounded by White.
       // So Black will have no empty spots adjacent.
 
-      const mockBoard: Player[][] = Array(8).fill(null).map(() => Array(8).fill(Player.White));
+      const mockBoard: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
       mockBoard[3][3] = Player.Black;
       mockBoard[0][0] = Player.None; // Make one empty spot far away for White
 

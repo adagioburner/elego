@@ -4,6 +4,7 @@ import { Move } from '../interfaces/Move';
 import { Player } from '../interfaces/Player';
 
 const RESTRICTED_PLACEMENT_TURN_THRESHOLD = 7;
+export const BOARD_SIZE = 8;
 
 export class GameEngine implements IGameEngine {
   private currentState: GameState;
@@ -13,7 +14,7 @@ export class GameEngine implements IGameEngine {
   }
 
   private createInitialState(): GameState {
-    const board: Player[][] = Array(8).fill(null).map(() => Array(8).fill(Player.None));
+    const board: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
     return {
       board,
       currentPlayer: Player.Black,
@@ -33,8 +34,8 @@ export class GameEngine implements IGameEngine {
     const validMoves: Move[] = [];
     const isMainPhase = state.turnNumber >= RESTRICTED_PLACEMENT_TURN_THRESHOLD;
 
-    for (let x = 0; x < 8; x++) {
-      for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < BOARD_SIZE; x++) {
+      for (let y = 0; y < BOARD_SIZE; y++) {
         if (state.board[y][x] === Player.None) {
           if (!isMainPhase) {
             validMoves.push({ x, y });
@@ -58,7 +59,7 @@ export class GameEngine implements IGameEngine {
         const ny = y + dy;
         const nx = x + dx;
 
-        if (ny >= 0 && ny < 8 && nx >= 0 && nx < 8) {
+        if (ny >= 0 && ny < BOARD_SIZE && nx >= 0 && nx < BOARD_SIZE) {
           if (state.board[ny][nx] === player) {
             return true;
           }
