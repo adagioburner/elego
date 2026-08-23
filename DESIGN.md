@@ -222,3 +222,99 @@ Accessed via the "Options" button in the header, this native `<dialog>` element 
 
 ### 8.5. Game Statistics Panel
 Located in the right panel (hidden by default), this section displays real-time metrics from the Computer Player, such as nodes searched, time elapsed, and estimated win probability. It helps users understand the AI's "thought process."
+
+## 9. Event Flow: Human Move and AI Response
+
+This section details the exact sequence of events and method calls triggered when a human player clicks on the game board, how the move is processed, and how the AI responds.
+
+### 9.1. Click Resolution and Routing
+1. **User Action:** The human player clicks on a square in the HTML board rendered by the `Display` module.
+2. **Event Capture:** The `Display` module, which previously attached event listeners to each board cell (e.g., using `data-x` and `data-y` attributes), intercepts the click event.
+3. **Move Translation:** `Display` translates the DOM click event into a logical `Move` object.
+4. **Callback Invocation:** `Display` invokes the callback that was bound during initialization by the `GameController` via `Display.bindSquareClick()`.
+
+```typescript
+// Inside Display.ts
+function onCellClick(event: MouseEvent) {
+  const cell = event.target as HTMLElement;
+  const x = parseInt(cell.dataset.x!);
+  const y = parseInt(cell.dataset.y!);
+
+  const move: Move = { x, y };
+  this.boundClickCallback(move); // Calls GameController.handleHumanMoveInput
+}
+```
+
+### 9.2. Move Processing by GameController
+1. **Handling Input:** The `GameController` receives the `Move` in its `handleHumanMoveInput(move: Move)` method.
+2. **Validation and Application:** `GameController` passes the move to `GameEngine.applyMoveToCurrent(move)`.
+3. **Outcome - Invalid Move:**
+   - If `applyMoveToCurrent` returns `false`, the move is invalid.
+   - `GameController` instructs `Display` to show feedback: `Display.showInvalidMoveError('Invalid move!')`.
+   - `GameController` logs the error to the UI: `UIManager.addMessage('Attempted invalid move.')`.
+4. **Outcome - Valid Move:**
+   - If `applyMoveToCurrent` returns `true`, the move is valid and the `GameEngine`'s internal state has been mutated.
+   - `GameController` fetches the updated state: `GameEngine.getGameState()`.
+   - `GameController` updates the visuals: `Display.renderBoard(newState)`.
+   - `GameController` logs the move: `UIManager.addMessage('Human played at ...')`.
+   - `GameController` checks if the game is over: `GameEngine.checkWinner(newState)`. If not over, it triggers the AI's turn: `GameController.promptAiMove()`.
+
+```typescript
+// Inside GameController.ts
+handleHumanMoveInput(move: Move): void {
+  const isValid = this.engine.applyMoveToCurrent(move);
+
+  if (!isValid) {
+    this.display.showInvalidMoveError("Invalid move! You must place adjacent to your pieces.");
+    this.uiManager.addMessage("Invalid move attempted.");
+    return;
+  }
+
+  const newState = this.engine.getGameState();
+  this.display.renderBoard(newState);
+  this.uiManager.addMessage(`Human played at (${move.x}, ${move.y})`);
+
+  const winner = this.engine.checkWinner(newState);
+  if (winner !== 'Ongoing') {
+    this.announceResult(winner);
+  } else {
+    this.promptAiMove();
+  }
+}
+```
+
+### 9.3. AI Response Generation
+1. **Triggering AI:** `GameController.promptAiMove()` is called. It may optionally show a "Thinking..." overlay or UI message.
+2. **Calculation:** `GameController` calls `AiPlayer.calculateBestMove(currentState)`. This is an asynchronous operation (`Promise`) so the UI does not freeze during MCTS evaluation.
+3. **AI Move Application:**
+   - Once the `Promise` resolves with the AI's chosen `Move`, `GameController` applies it: `GameEngine.applyMoveToCurrent(aiMove)`.
+   - The state is retrieved again: `GameEngine.getGameState()`.
+   - The board is re-rendered to show the AI's piece: `Display.renderBoard(newState)`.
+   - The UI messages and stats are updated: `UIManager.addMessage(...)`, `UIManager.updateStats(...)`.
+4. **Turn Handover:** `GameController` checks for a winner. If the game continues, control naturally returns to the human player, awaiting the next click event from the `Display` module.
+
+```typescript
+// Inside GameController.ts
+async promptAiMove(): void {
+  this.uiManager.addMessage("AI is thinking...");
+
+  const currentState = this.engine.getGameState();
+  const aiMove = await this.aiPlayer.calculateBestMove(currentState);
+
+  this.engine.applyMoveToCurrent(aiMove);
+
+  const newState = this.engine.getGameState();
+  this.display.renderBoard(newState);
+  this.uiManager.addMessage(`AI played at (${aiMove.x}, ${aiMove.y})`);
+
+  // Update AI stats
+  const stats = this.aiPlayer.getStats();
+  this.uiManager.updateStats(stats.totalNodes, stats.calculationTimeMs, stats.bestMoveWinRate);
+
+  const winner = this.engine.checkWinner(newState);
+  if (winner !== 'Ongoing') {
+    this.announceResult(winner);
+  }
+  // If ongoing, wait for the next human click
+}
+```
