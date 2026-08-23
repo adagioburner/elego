@@ -85,7 +85,25 @@ interface IAiPlayer {
 
 ## 5. Data Structures
 
-### 5.1. Game State (Backing Store)
+### 5.1. Game Stats (UI / General)
+```typescript
+interface GameStats {
+  nodesSearched: number;
+  timeElapsedMs: number;
+  aiWinProbability: number;
+}
+```
+
+### 5.2. AI Stats (Computer Player)
+```typescript
+interface AiStats {
+  totalNodes: number;
+  calculationTimeMs: number;
+  bestMoveWinRate: number;
+}
+```
+
+### 5.3. Game State (Backing Store)
 ```typescript
 enum Player { Black = 1, White = 2, None = 0 }
 
@@ -102,7 +120,7 @@ interface GameState {
 }
 ```
 
-### 5.2. MCTS Node (Computer Player)
+### 5.4. MCTS Node (Computer Player)
 ```typescript
 interface MCTSNode {
   gameState: GameState;
