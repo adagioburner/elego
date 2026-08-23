@@ -67,9 +67,9 @@ interface IGameEngine {
   initializeGame(): void;
   getGameState(): GameState;
   getValidMoves(state: GameState): Move[];
-  applyMove(move: Move): boolean; // Returns true if valid and applied successfully
+  applyMoveToCurrent(move: Move): boolean; // Mutates the true game state. Returns true if valid.
+  simulateMove(state: GameState, move: Move): GameState; // Pure function: returns a new state resulting from the move
   checkWinner(state: GameState): Player | 'Ongoing';
-  cloneState(state: GameState): GameState; // Crucial for AI simulations without mutating actual state
 }
 ```
 
@@ -134,7 +134,7 @@ The primary search algorithm used by the Computer Player to determine the optima
 - **Selection (`select(node: MCTSNode): MCTSNode`)**:
   Traverses down the tree from the root by selecting children using the UCB1 (Upper Confidence Bound) formula to balance exploration of unvisited paths and exploitation of known winning paths. Stops when it reaches a node with untried moves or a terminal state.
 - **Expansion (`expand(node: MCTSNode): MCTSNode`)**:
-  If the selected node has untried moves, pops one move, applies it to a cloned game state, creates a new child node for this resulting state, and returns the new node.
+  If the selected node has untried moves, pops one move, applies it to the state using `simulateMove(state, move)`, creates a new child node for this resulting state, and returns the new node.
 - **Simulation (`simulate(node: MCTSNode): number`)**:
   *Mode 1 (Standard):* Plays random moves from the node's state until the game ends, returning a score (e.g., 1 for win, 0 for loss).
   *Mode 2 (Heuristic):* Uses the Proximity Heuristic to evaluate the non-terminal state directly without playing to the end.
