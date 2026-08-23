@@ -3,33 +3,104 @@ import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { Player } from '../interfaces/Player';
 
+const RESTRICTED_PLACEMENT_TURN_THRESHOLD = 7;
+export const BOARD_SIZE = 8;
+
 export class GameEngine implements IGameEngine {
+  private currentState: GameState;
+
+  constructor() {
+    this.currentState = this.createInitialState();
+  }
+
+  private createInitialState(): GameState {
+    const board: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+    return {
+      board,
+      currentPlayer: Player.Black,
+      turnNumber: 1
+    };
+  }
+
   initializeGame(): void {
-    // TODO: Implement initializeGame
+    this.currentState = this.createInitialState();
   }
 
   getGameState(): GameState {
-    // TODO: Implement getGameState
-    return null as any;
+    return this.currentState;
   }
 
   getValidMoves(state: GameState): Move[] {
-    // TODO: Implement getValidMoves
-    return [];
+    const validMoves: Move[] = [];
+    const isMainPhase = state.turnNumber >= RESTRICTED_PLACEMENT_TURN_THRESHOLD;
+
+    for (let x = 0; x < BOARD_SIZE; x++) {
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        if (state.board[y][x] === Player.None) {
+          if (!isMainPhase) {
+            validMoves.push({ x, y });
+          } else {
+            // Check for adjacency to at least one piece of the current player's color
+            if (this.isAdjacentToOwnPiece(state, x, y, state.currentPlayer)) {
+              validMoves.push({ x, y });
+            }
+          }
+        }
+      }
+    }
+
+    return validMoves;
+  }
+
+  private isAdjacentToOwnPiece(state: GameState, x: number, y: number, player: Player): boolean {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const ny = y + dy;
+        const nx = x + dx;
+
+        if (ny >= 0 && ny < BOARD_SIZE && nx >= 0 && nx < BOARD_SIZE) {
+          if (state.board[ny][nx] === player) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   applyMoveToCurrent(move: Move): boolean {
-    // TODO: Implement applyMoveToCurrent
+    const validMoves = this.getValidMoves(this.currentState);
+    const isValid = validMoves.some(m => m.x === move.x && m.y === move.y);
+
+    if (isValid) {
+      this.currentState = this.simulateMove(this.currentState, move);
+      return true;
+    }
+
     return false;
   }
 
   simulateMove(state: GameState, move: Move): GameState {
-    // TODO: Implement simulateMove
-    return null as any;
+    const newBoard = state.board.map(row => [...row]);
+    newBoard[move.y][move.x] = state.currentPlayer;
+
+    const nextPlayer = state.currentPlayer === Player.Black ? Player.White : Player.Black;
+
+    return {
+      board: newBoard,
+      currentPlayer: nextPlayer,
+      turnNumber: state.turnNumber + 1,
+      lastMove: { ...move }
+    };
   }
 
   checkWinner(state: GameState): Player | 'Ongoing' {
-    // TODO: Implement checkWinner
+    const validMoves = this.getValidMoves(state);
+    if (validMoves.length === 0) {
+      // The current player has no valid moves, so the other player wins
+      return state.currentPlayer === Player.Black ? Player.White : Player.Black;
+    }
     return 'Ongoing';
   }
 }
