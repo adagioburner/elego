@@ -51,6 +51,14 @@ export class UIManager {
     this.bindEvents();
   }
 
+  public bindPlayFirst(callback: () => void): void {
+    this.btnPlayFirst?.addEventListener('click', callback);
+  }
+
+  public bindPlaySecond(callback: () => void): void {
+    this.btnPlaySecond?.addEventListener('click', callback);
+  }
+
   private bindEvents(): void {
     if (this.btnOptions && this.optionsDialog) {
       this.btnOptions.addEventListener('click', () => {
