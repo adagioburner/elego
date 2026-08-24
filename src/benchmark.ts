@@ -156,32 +156,48 @@ if (!isMainThread) {
             });
         };
 
+        // Spawn all workers immediately instead of sequentially waiting for each pair
+        interface PendingMatch {
+            configA: AiConfig;
+            configB: AiConfig;
+            resultPromise: Promise<[{winsA: number, winsB: number}, {winsA: number, winsB: number}]>;
+        }
+
+        const pendingMatches: PendingMatch[] = [];
+
         for (let i = 0; i < configs.length; i++) {
             for (let j = i; j < configs.length; j++) {
-                // If i == j, it's the same config against itself, we still run it as requested
-                // "pair every configuration with each other".
                 const configA = configs[i]!;
                 const configB = configs[j]!;
 
-                console.log(`Running match: [${configToString(configA)}] vs [${configToString(configB)}]`);
+                console.log(`Queuing match: [${configToString(configA)}] vs [${configToString(configB)}]`);
 
-                // Run A as Black, B as White
                 const taskABlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'A' };
-                // Run B as Black, A as White
                 const taskBBlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'B' };
 
-                const [resultABlack, resultBBlack] = await Promise.all([
+                const resultPromise = Promise.all([
                     runTask(taskABlack),
                     runTask(taskBBlack)
                 ]);
 
-                const totalWinsA = resultABlack.winsA + resultBBlack.winsA;
-                const totalWinsB = resultABlack.winsB + resultBBlack.winsB;
-
-                const csvRow = `${configToString(configA)},${configToString(configB)},${resultABlack.winsA},${resultABlack.winsB},${resultBBlack.winsA},${resultBBlack.winsB},${totalWinsA},${totalWinsB}\n`;
-                stream.write(csvRow);
-                console.log(`Completed match: [${configToString(configA)}] (${totalWinsA}) vs [${configToString(configB)}] (${totalWinsB})`);
+                pendingMatches.push({
+                    configA,
+                    configB,
+                    resultPromise
+                });
             }
+        }
+
+        // Wait for all matches to complete and write them out
+        for (const match of pendingMatches) {
+            const [resultABlack, resultBBlack] = await match.resultPromise;
+
+            const totalWinsA = resultABlack.winsA + resultBBlack.winsA;
+            const totalWinsB = resultABlack.winsB + resultBBlack.winsB;
+
+            const csvRow = `${configToString(match.configA)},${configToString(match.configB)},${resultABlack.winsA},${resultABlack.winsB},${resultBBlack.winsA},${resultBBlack.winsB},${totalWinsA},${totalWinsB}\n`;
+            stream.write(csvRow);
+            console.log(`Completed match: [${configToString(match.configA)}] (${totalWinsA}) vs [${configToString(match.configB)}] (${totalWinsB})`);
         }
 
         stream.end();
