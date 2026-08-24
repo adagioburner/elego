@@ -4,6 +4,7 @@ import { Player } from './interfaces/Player';
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 type ExpansionStrategy = 'Random' | 'BestProximity' | 'RandomImprovingProximity';
 type SimulationMode = 'RandomRollout' | 'ProximityHeuristic';
@@ -120,8 +121,9 @@ if (!isMainThread) {
                 if (task.blackConfig === 'A') winsB++;
                 else winsA++;
             }
+            parentPort?.postMessage({ type: 'progress' });
         }
-        parentPort?.postMessage({ winsA, winsB });
+        parentPort?.postMessage({ type: 'result', winsA, winsB });
     };
 
     run().catch(err => {
@@ -138,21 +140,44 @@ if (!isMainThread) {
         const stream = fs.createWriteStream(OUT_FILE);
         stream.write('Config A,Config B,Wins A (as Black),Wins B (as White),Wins A (as White),Wins B (as Black),Total Wins A,Total Wins B\n');
 
-        let completedPairs = 0;
-        const totalPairs = configs.length * (configs.length - 1) / 2;
+        const MAX_WORKERS = Math.max(1, os.cpus().length - 1);
+        let activeWorkers = 0;
+        const taskQueue: (() => void)[] = [];
 
         const runTask = (task: MatchTask): Promise<{ winsA: number, winsB: number }> => {
             return new Promise((resolve, reject) => {
-                const worker = new Worker(__filename, {
-                    workerData: task,
-                    // Use ts-node in worker threads
-                    execArgv: ['--require', 'ts-node/register/transpile-only']
-                });
-                worker.on('message', resolve);
-                worker.on('error', reject);
-                worker.on('exit', (code) => {
-                    if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
-                });
+                const startWorker = () => {
+                    activeWorkers++;
+                    const worker = new Worker(__filename, {
+                        workerData: task,
+                        // Use ts-node in worker threads
+                        execArgv: ['--require', 'ts-node/register/transpile-only']
+                    });
+
+                    worker.on('message', (msg) => {
+                        if (msg.type === 'progress') {
+                            process.stdout.write('.');
+                        } else if (msg.type === 'result') {
+                            resolve({ winsA: msg.winsA, winsB: msg.winsB });
+                        }
+                    });
+
+                    worker.on('error', reject);
+                    worker.on('exit', (code) => {
+                        activeWorkers--;
+                        if (taskQueue.length > 0) {
+                            const next = taskQueue.shift();
+                            if (next) next();
+                        }
+                        if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
+                    });
+                };
+
+                if (activeWorkers < MAX_WORKERS) {
+                    startWorker();
+                } else {
+                    taskQueue.push(startWorker);
+                }
             });
         };
 
@@ -188,6 +213,8 @@ if (!isMainThread) {
             }
         }
 
+        console.log(`\nStarting execution with concurrency limit of ${MAX_WORKERS} workers...`);
+
         // Wait for all matches to complete and write them out
         for (const match of pendingMatches) {
             const [resultABlack, resultBBlack] = await match.resultPromise;
@@ -197,11 +224,13 @@ if (!isMainThread) {
 
             const csvRow = `${configToString(match.configA)},${configToString(match.configB)},${resultABlack.winsA},${resultABlack.winsB},${resultBBlack.winsA},${resultBBlack.winsB},${totalWinsA},${totalWinsB}\n`;
             stream.write(csvRow);
-            console.log(`Completed match: [${configToString(match.configA)}] (${totalWinsA}) vs [${configToString(match.configB)}] (${totalWinsB})`);
+
+            // Print a newline so the match completion log isn't appended to the progress dots
+            console.log(`\nCompleted match: [${configToString(match.configA)}] (${totalWinsA}) vs [${configToString(match.configB)}] (${totalWinsB})`);
         }
 
         stream.end();
-        console.log(`Benchmarks complete! Results saved to ${OUT_FILE}`);
+        console.log(`\nBenchmarks complete! Results saved to ${OUT_FILE}`);
     }
 
     main().catch(console.error);
