@@ -57,7 +57,6 @@ interface IDisplay {
   renderBoard(state: GameState): void; // Should visually highlight state.lastMove to indicate the AI's recent move
   showInvalidMoveError(message: string): void; // Provides feedback when a user clicks an invalid square
   bindSquareClick(callback: (move: Move) => void): void;
-  showOverlay(message: string): void;
 }
 ```
 
@@ -193,10 +192,13 @@ To ensure robustness, the project will implement a suite of unit and integration
 - Test correct DOM generation for an 8x8 grid.
 - Test pieces of different colors render correctly based on a mocked `GameState`.
 - Test click events accurately map back to `x,y` board coordinates.
+- Test error messages (invalid move) are displayed and audio plays if sound is enabled.
 
 **UI Controller**
 - Test state transitions (Start Screen -> Human Turn -> AI Turn -> Game Over).
 - Test statistics formatting (e.g., node count, elapsed time) when the stats toggle is active.
+- Test that human input is blocked while the AI is thinking, displaying a warning message.
+- Test that starting a new game while one is active prompts for confirmation before resetting state.
 
 ### 7.2. Integration Tests
 - **Engine + AI:** Initialize a mock game state mid-game, invoke the AI to calculate a move, apply the move to the engine, and assert that the state remains valid.
@@ -218,7 +220,7 @@ Also located in the left panel, this component displays a scrolling list of game
 The central component of the UI. This is where the 8x8 game board is dynamically rendered by the Display module. It acts as the interactive surface for human moves.
 
 ### 8.4. Options Dialog
-Accessed via the "Options" button in the header, this native `<dialog>` element contains configurations for the AI. Users can set the "AI Think Time" and select the "Simulation Mode" (e.g., Random Rollout vs Proximity Heuristic). It also includes a toggle to show or hide the Game Statistics panel.
+Accessed via the "Options" button in the header, this native `<dialog>` element contains configurations for the AI. Users can set the "AI Think Time" and select the "Simulation Mode" (e.g., Random Rollout vs Proximity Heuristic). It also includes a toggle to show or hide the Game Statistics panel, as well as a toggle to enable/disable sound.
 
 ### 8.5. Game Statistics Panel
 Located in the right panel (hidden by default), this section displays real-time metrics from the Computer Player, such as nodes searched, time elapsed, and estimated win probability. It helps users understand the AI's "thought process."
@@ -284,7 +286,7 @@ handleHumanMoveInput(move: Move): void {
 ```
 
 ### 9.3. AI Response Generation
-1. **Triggering AI:** `GameController.promptAiMove()` is called. It may optionally show a "Thinking..." overlay or UI message.
+1. **Triggering AI:** `GameController.promptAiMove()` is called. It adds a "Thinking..." UI message.
 2. **Calculation:** `GameController` calls `AiPlayer.calculateBestMove(currentState)`. This is an asynchronous operation (`Promise`) so the UI does not freeze during MCTS evaluation.
 3. **AI Move Application:**
    - Once the `Promise` resolves with the AI's chosen `Move`, `GameController` applies it: `GameEngine.applyMoveToCurrent(aiMove)`.

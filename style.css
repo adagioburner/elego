@@ -96,6 +96,39 @@ body {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
+  position: relative;
+}
+
+.board-cell {
+  border: 1px solid var(--grid-line-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.board-cell:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.piece {
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+}
+
+.piece.black {
+  background-color: #222;
+}
+
+.piece.white {
+  background-color: #eee;
+}
+
+.piece.last-move {
+  border: 3px solid #ff3333;
 }
 
 /* Base button styles */
