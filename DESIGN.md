@@ -163,10 +163,19 @@ To allow modularity and compare AI strengths, the Simulation stage can be substi
 
 - **Algorithm (Proximity Cost):**
   1. Iterate over every unoccupied square on the board.
-  2. For each unoccupied square, calculate the distance (e.g., Chebyshev distance) to the nearest Computer piece and the nearest Human piece.
+  2. For each unoccupied square, calculate the shortest path distance using Chebyshev steps (horizontal, vertical, diagonal) to the nearest Computer piece and the nearest Human piece via Breadth-First Search. Crucially, this pathfinding treats the opponent's pieces as impassable walls.
   3. Tally how many squares are strictly closer to Computer pieces, and how many are strictly closer to Human pieces.
   4. `Cost = (Squares closer to Computer) - (Squares closer to Human)`.
   5. Normalize this cost to a range (e.g., 0 to 1) to substitute as the backpropagated score in MCTS.
+
+### 6.3. Expansion Strategies
+To further improve performance and allow different heuristics, the MCTS can be configured to choose a specific order or strategy when expanding unvisited nodes:
+
+- **Random:** The default behavior. Picks a random untried move from the node's valid moves.
+- **Best Proximity:** Calculates the Proximity Heuristic score (as described above) for the game state resulting from every untried move. It deterministically picks the move that results in the highest heuristic score.
+- **Random Improving Proximity:** Calculates the Proximity Heuristic score of the *current* state. Then evaluates all untried moves and filters for only those moves that strictly *improve* the heuristic score compared to the current state. It picks a random move from this filtered list. If no moves improve the score, it falls back to picking a completely random untried move.
+
+*Note on Proximity Metric Calculation:* The proximity metric uses a Breadth-First Search (BFS) to find the shortest Chebyshev distance (moving horizontally, vertically, or diagonally) from every empty square to the nearest friendly piece, explicitly treating the opponent's pieces as impassable walls. This ensures that squares blocked off by the opponent are correctly evaluated as inaccessible.
 
 ## 7. Test Plan
 
