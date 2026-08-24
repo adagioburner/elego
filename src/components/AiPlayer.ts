@@ -1,6 +1,6 @@
 import { IAiPlayer } from '../interfaces/IAiPlayer';
 import { GameState } from '../interfaces/GameState';
-import { Position } from '../interfaces/Position';
+import { Move } from '../interfaces/Move';
 import { AiStats } from '../interfaces/AiStats';
 import { Player } from '../interfaces/Player';
 import { MCTSNode } from '../interfaces/MCTSNode';
@@ -11,7 +11,7 @@ export class AiPlayer implements IAiPlayer {
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' = 'RandomRollout';
   private expansionStrategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity' = 'Random';
   private gameEngine: GameEngine = new GameEngine();
-  private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestPositionWinRate: 0 };
+  private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
 
   private calculateProximityScore(state: GameState, aiPlayerColor: Player): number {
@@ -103,23 +103,23 @@ export class AiPlayer implements IAiPlayer {
   }
 
   private expand(node: MCTSNode): MCTSNode {
-    if (node.untriedPositions.length === 0) {
+    if (node.untriedMoves.length === 0) {
       return node; // Cannot expand further
     }
 
-    let chosenPositionIndex = -1;
+    let chosenMoveIndex = -1;
 
     if (this.expansionStrategy === 'Random') {
-      chosenPositionIndex = Math.floor(Math.random() * node.untriedPositions.length);
+      chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
     } else if (this.expansionStrategy === 'BestProximity') {
       let bestScore = -Infinity;
       let bestIndices: number[] = [];
 
-      for (let i = 0; i < node.untriedPositions.length; i++) {
-        const move = node.untriedPositions[i];
+      for (let i = 0; i < node.untriedMoves.length; i++) {
+        const move = node.untriedMoves[i];
         // The game engine simulates the move assuming it's current player's turn
-        // Set the state in a fresh engine or use simulatePosition
-        const nextState = this.gameEngine.simulatePosition(node.gameState, move);
+        // Set the state in a fresh engine or use simulateMove
+        const nextState = this.gameEngine.simulateMove(node.gameState, move);
         const score = this.calculateProximityScore(nextState, this.aiPlayerColor);
 
         if (score > bestScore) {
@@ -131,14 +131,14 @@ export class AiPlayer implements IAiPlayer {
       }
 
       // Break ties randomly
-      chosenPositionIndex = bestIndices[Math.floor(Math.random() * bestIndices.length)];
+      chosenMoveIndex = bestIndices[Math.floor(Math.random() * bestIndices.length)];
     } else if (this.expansionStrategy === 'RandomImprovingProximity') {
       const currentScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
       let improvingIndices: number[] = [];
 
-      for (let i = 0; i < node.untriedPositions.length; i++) {
-        const move = node.untriedPositions[i];
-        const nextState = this.gameEngine.simulatePosition(node.gameState, move);
+      for (let i = 0; i < node.untriedMoves.length; i++) {
+        const move = node.untriedMoves[i];
+        const nextState = this.gameEngine.simulateMove(node.gameState, move);
         const score = this.calculateProximityScore(nextState, this.aiPlayerColor);
 
         if (score > currentScore) {
@@ -147,26 +147,26 @@ export class AiPlayer implements IAiPlayer {
       }
 
       if (improvingIndices.length > 0) {
-        chosenPositionIndex = improvingIndices[Math.floor(Math.random() * improvingIndices.length)];
+        chosenMoveIndex = improvingIndices[Math.floor(Math.random() * improvingIndices.length)];
       } else {
         // Fallback: choose a completely random move
-        chosenPositionIndex = Math.floor(Math.random() * node.untriedPositions.length);
+        chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
       }
     }
 
-    const move = node.untriedPositions[chosenPositionIndex];
-    node.untriedPositions.splice(chosenPositionIndex, 1);
+    const move = node.untriedMoves[chosenMoveIndex];
+    node.untriedMoves.splice(chosenMoveIndex, 1);
 
-    const nextState = this.gameEngine.simulatePosition(node.gameState, move);
+    const nextState = this.gameEngine.simulateMove(node.gameState, move);
 
     const childNode: MCTSNode = {
       gameState: nextState,
       parent: node,
       children: [],
-      positionFromParent: move,
+      moveFromParent: move,
       visits: 0,
       wins: 0,
-      untriedPositions: this.gameEngine.getValidPositions(nextState)
+      untriedMoves: this.gameEngine.getValidMoves(nextState)
     };
 
     node.children.push(childNode);
@@ -197,14 +197,14 @@ export class AiPlayer implements IAiPlayer {
           return 0; // AI lost
         }
 
-        const validPositions = this.gameEngine.getValidPositions(currentState);
-        if (validPositions.length === 0) {
+        const validMoves = this.gameEngine.getValidMoves(currentState);
+        if (validMoves.length === 0) {
            // Defensive check
            return currentState.currentPlayer === this.aiPlayerColor ? 0 : 1;
         }
 
-        const randomPosition = validPositions[Math.floor(Math.random() * validPositions.length)];
-        currentState = this.gameEngine.simulatePosition(currentState, randomPosition);
+        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+        currentState = this.gameEngine.simulateMove(currentState, randomMove);
       }
     }
   }
@@ -217,9 +217,9 @@ export class AiPlayer implements IAiPlayer {
       // If the node's game state has currentPlayer === AI, it means the opponent just moved.
       // If the node's game state has currentPlayer === Opponent, it means the AI just moved.
       // We attribute the win score to the player who made the move resulting in this node.
-      const playerWhoJustPositiond = current.gameState.currentPlayer === Player.Black ? Player.White : Player.Black;
+      const playerWhoJustMoved = current.gameState.currentPlayer === Player.Black ? Player.White : Player.Black;
 
-      if (playerWhoJustPositiond === this.aiPlayerColor) {
+      if (playerWhoJustMoved === this.aiPlayerColor) {
         current.wins += score;
       } else {
         // If the opponent just moved, their win probability is 1 - score
@@ -234,7 +234,7 @@ export class AiPlayer implements IAiPlayer {
     let current = node;
 
     // Descend the tree while nodes are fully expanded and have children
-    while (current.untriedPositions.length === 0 && current.children.length > 0) {
+    while (current.untriedMoves.length === 0 && current.children.length > 0) {
       current = this.getBestUctChild(current);
     }
 
@@ -264,7 +264,7 @@ export class AiPlayer implements IAiPlayer {
     return bestChild;
   }
 
-  calculateBestPosition(currentState: GameState): Promise<Position> {
+  calculateBestMove(currentState: GameState): Promise<Move> {
     return new Promise((resolve, reject) => {
       this.aiPlayerColor = currentState.currentPlayer;
       const startTime = Date.now();
@@ -273,13 +273,13 @@ export class AiPlayer implements IAiPlayer {
         gameState: currentState,
         parent: null,
         children: [],
-        positionFromParent: null,
+        moveFromParent: null,
         visits: 0,
         wins: 0,
-        untriedPositions: this.gameEngine.getValidPositions(currentState)
+        untriedMoves: this.gameEngine.getValidMoves(currentState)
       };
 
-      if (rootNode.untriedPositions.length === 0) {
+      if (rootNode.untriedMoves.length === 0) {
         reject(new Error("No valid moves available."));
         return;
       }
@@ -316,15 +316,15 @@ export class AiPlayer implements IAiPlayer {
           this.stats = {
             totalNodes: rootNode.visits,
             calculationTimeMs: Date.now() - startTime,
-            bestPositionWinRate: mostVisitedChild.wins / mostVisitedChild.visits
+            bestMoveWinRate: mostVisitedChild.wins / mostVisitedChild.visits
           };
 
-          if (mostVisitedChild && mostVisitedChild.positionFromParent) {
-            resolve(mostVisitedChild.positionFromParent);
+          if (mostVisitedChild && mostVisitedChild.moveFromParent) {
+            resolve(mostVisitedChild.moveFromParent);
           } else {
             // Fallback (e.g. timeout before expanding any children)
-            const fallbackPosition = rootNode.untriedPositions[0] || currentState.lastPosition;
-            resolve(fallbackPosition as Position);
+            const fallbackMove = rootNode.untriedMoves[0] || currentState.lastMove;
+            resolve(fallbackMove as Move);
           }
         } else {
           // Continue calculating next chunk on next event loop tick

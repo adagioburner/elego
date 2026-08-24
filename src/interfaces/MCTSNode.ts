@@ -1,12 +1,12 @@
 import { GameState } from './GameState';
-import { Position } from './Position';
+import { Move } from './Move';
 
 export interface MCTSNode {
   gameState: GameState;
   parent: MCTSNode | null;
   children: MCTSNode[];
-  positionFromParent: Position | null;
+  moveFromParent: Move | null;
   visits: number;
   wins: number; // Win score from the perspective of the player who made the move to reach this node
-  untriedPositions: Position[];
+  untriedMoves: Move[];
 }

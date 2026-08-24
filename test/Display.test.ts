@@ -75,7 +75,7 @@ describe('Display Component', () => {
       board,
       currentPlayer: Player.Black,
       turnNumber: 3,
-      lastPosition: { x: 4, y: 3 }
+      lastMove: { x: 4, y: 3 }
     };
 
     display.renderBoard(state);
@@ -87,14 +87,14 @@ describe('Display Component', () => {
     const whiteCell = container.querySelector('.board-cell[data-x="4"][data-y="3"]') as HTMLElement;
     expect(whiteCell.innerHTML).toContain('piece');
     expect(whiteCell.innerHTML).toContain('white');
-    expect(whiteCell.innerHTML).toContain('last-move'); // Because this is the lastPosition
+    expect(whiteCell.innerHTML).toContain('last-move'); // Because this is the lastMove
 
     const emptyCell = container.querySelector('.board-cell[data-x="0"][data-y="0"]') as HTMLElement;
     expect(emptyCell.innerHTML).toBe('');
   });
 
   it('plays sound and calls addMessage when invalid move is made if sound is enabled', () => {
-    display.showInvalidPositionError('Invalid move');
+    display.showInvalidMoveError('Invalid move');
     expect(uiManagerMock.isSoundEnabled).toHaveBeenCalled();
     expect((window as any).AudioContext).toHaveBeenCalled();
     expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Invalid move');
@@ -102,7 +102,7 @@ describe('Display Component', () => {
 
   it('does not play sound if sound is disabled but still calls addMessage', () => {
     uiManagerMock.isSoundEnabled.mockReturnValue(false);
-    display.showInvalidPositionError('Invalid move');
+    display.showInvalidMoveError('Invalid move');
     expect((window as any).AudioContext).not.toHaveBeenCalled();
     expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Invalid move');
   });

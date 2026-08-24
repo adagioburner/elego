@@ -3,7 +3,7 @@ import { IGameEngine } from '../interfaces/IGameEngine';
 import { IDisplay } from '../interfaces/IDisplay';
 import { IAiPlayer } from '../interfaces/IAiPlayer';
 import { UIManager } from '../ui/UIManager';
-import { Position } from '../interfaces/Position';
+import { Move } from '../interfaces/Move';
 import { GameStats } from '../interfaces/GameStats';
 import { Player } from '../interfaces/Player';
 
@@ -22,7 +22,7 @@ export class GameController implements IGameController {
     this.uiManager = uiManager;
     this.aiPlayer = aiPlayer;
 
-    this.display.bindSquareClick(this.handleHumanPositionInput.bind(this));
+    this.display.bindSquareClick(this.handleHumanMoveInput.bind(this));
   }
 
   startGame(humanPlaysFirst: boolean, aiThinkTimeMs: number): void {
@@ -40,8 +40,7 @@ export class GameController implements IGameController {
     this.isAiThinking = false;
 
     this.aiPlayer.setThinkTime(aiThinkTimeMs);
-    this.aiPlayer.setSimulationMode(this.uiManager.getAiSimulationMode());
-    this.aiPlayer.setExpansionStrategy(this.uiManager.getAiExpansionStrategy());
+    // Simulation mode could be set here based on UI manager, but we'll stick to the interface params
     this.humanPlayer = humanPlaysFirst ? Player.Black : Player.White;
 
     this.uiManager.updateStats(0, 0, 0);
@@ -50,11 +49,11 @@ export class GameController implements IGameController {
     this.display.renderBoard(initialState);
 
     if (!humanPlaysFirst) {
-      this.promptAiPosition();
+      this.promptAiMove();
     }
   }
 
-  handleHumanPositionInput(move: Position): void {
+  handleHumanMoveInput(move: Move): void {
     if (this.isGameOver) return;
 
     if (this.isAiThinking) {
@@ -68,11 +67,11 @@ export class GameController implements IGameController {
        return;
     }
 
-    const isValid = this.engine.applyPositionToCurrent(move);
+    const isValid = this.engine.applyMoveToCurrent(move);
 
     if (!isValid) {
-      const msg = `Position (${move.x}, ${move.y}) is invalid!`;
-      this.display.showInvalidPositionError(msg);
+      const msg = `Move (${move.x}, ${move.y}) is invalid!`;
+      this.display.showInvalidMoveError(msg);
       return;
     }
 
@@ -84,29 +83,29 @@ export class GameController implements IGameController {
     if (winner !== 'Ongoing') {
       this.announceResult(winner);
     } else {
-      this.promptAiPosition();
+      this.promptAiMove();
     }
   }
 
-  async promptAiPosition(): Promise<void> {
+  async promptAiMove(): Promise<void> {
     if (this.isGameOver) return;
 
     this.isAiThinking = true;
     this.uiManager.addMessage("AI is thinking...");
 
     const currentState = this.engine.getGameState();
-    const aiPosition = await this.aiPlayer.calculateBestPosition(currentState);
+    const aiMove = await this.aiPlayer.calculateBestMove(currentState);
 
-    this.engine.applyPositionToCurrent(aiPosition);
+    this.engine.applyMoveToCurrent(aiMove);
 
     const newState = this.engine.getGameState();
     this.display.renderBoard(newState);
-    this.uiManager.addMessage(`AI played at (${aiPosition.x}, ${aiPosition.y})`);
+    this.uiManager.addMessage(`AI played at (${aiMove.x}, ${aiMove.y})`);
 
     // Update AI stats
     const stats = this.aiPlayer.getStats();
     if (stats) {
-       this.uiManager.updateStats(stats.totalNodes, stats.calculationTimeMs, stats.bestPositionWinRate);
+       this.uiManager.updateStats(stats.totalNodes, stats.calculationTimeMs, stats.bestMoveWinRate);
     }
 
     this.isAiThinking = false;
