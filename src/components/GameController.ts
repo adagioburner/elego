@@ -40,7 +40,8 @@ export class GameController implements IGameController {
     this.isAiThinking = false;
 
     this.aiPlayer.setThinkTime(aiThinkTimeMs);
-    // Simulation mode could be set here based on UI manager, but we'll stick to the interface params
+    this.aiPlayer.setSimulationMode(this.uiManager.getAiSimulationMode());
+    this.aiPlayer.setExpansionStrategy(this.uiManager.getAiExpansionStrategy());
     this.humanPlayer = humanPlaysFirst ? Player.Black : Player.White;
 
     this.uiManager.updateStats(0, 0, 0);
