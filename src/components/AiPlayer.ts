@@ -3,6 +3,7 @@ import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { AiStats } from '../interfaces/AiStats';
 import { Player } from '../interfaces/Player';
+import { Move } from '../interfaces/Move';
 import { MCTSNode } from '../interfaces/MCTSNode';
 import { BOARD_SIZE, GameEngine } from './GameEngine';
 
@@ -23,8 +24,8 @@ export class AiPlayer implements IAiPlayer {
     const humanDistances: number[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Infinity));
 
     // Queues for BFS
-    const aiQueue: { x: number, y: number }[] = [];
-    const humanQueue: { x: number, y: number }[] = [];
+    const aiQueue: Position[] = [];
+    const humanQueue: Position[] = [];
 
     // Find initial pieces
     for (let y = 0; y < BOARD_SIZE; y++) {
@@ -41,7 +42,7 @@ export class AiPlayer implements IAiPlayer {
     }
 
     // Helper for BFS
-    const runBfs = (queue: { x: number, y: number }[], distances: number[][], opponentColor: Player) => {
+    const runBfs = (queue: Position[], distances: number[][], opponentColor: Player) => {
       let head = 0;
       while (head < queue.length) {
         const { x, y } = queue[head++];
