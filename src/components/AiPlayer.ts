@@ -176,13 +176,31 @@ export class AiPlayer implements IAiPlayer {
 
   private simulate(node: MCTSNode): number {
     if (this.simulationMode === 'ProximityHeuristic') {
+      // First check if it's already a terminal state
+      const winner = this.gameEngine.checkWinner(node.gameState);
+      if (winner !== 'Ongoing') {
+        if (winner === this.aiPlayerColor) return 1;
+        if (winner === Player.None) return 0.5;
+        return 0;
+      }
+
       // Evaluate the non-terminal state directly
       const rawScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
-      // Max possible score is roughly the number of empty squares.
+
+      // Count empty squares for accurate normalization
+      let emptySquares = 0;
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+          if (node.gameState.board[y][x] === Player.None) {
+            emptySquares++;
+          }
+        }
+      }
+
+      if (emptySquares === 0) return 0.5;
+
       // Normalizing to [0, 1] for win probability compatibility in MCTS.
-      // E.g., worst case is around -64, best case is +64.
-      const maxScore = BOARD_SIZE * BOARD_SIZE;
-      const normalizedScore = (rawScore + maxScore) / (2 * maxScore);
+      const normalizedScore = (rawScore + emptySquares) / (2 * emptySquares);
       // Clamp between 0 and 1 just in case
       return Math.max(0, Math.min(1, normalizedScore));
     } else {
