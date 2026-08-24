@@ -3,6 +3,7 @@ import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { Player } from '../interfaces/Player';
 import { UIManager } from '../ui/UIManager';
+import { BOARD_SIZE } from './GameEngine';
 
 export class Display implements IDisplay {
   private boardContainer: HTMLElement;
@@ -18,8 +19,8 @@ export class Display implements IDisplay {
 
   private initBoardDOM(): void {
     this.boardContainer.innerHTML = '';
-    for (let y = 0; y < 8; y++) {
-      for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < BOARD_SIZE; y++) {
+      for (let x = 0; x < BOARD_SIZE; x++) {
         const cell = document.createElement('div');
         cell.className = 'board-cell';
         cell.dataset.x = x.toString();
