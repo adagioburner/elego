@@ -4,6 +4,7 @@ import { Player } from './interfaces/Player';
 import { isMainThread, parentPort, workerData, Worker } from 'worker_threads';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 type ExpansionStrategy = 'Random' | 'BestProximity' | 'RandomImprovingProximity';
 type SimulationMode = 'RandomRollout' | 'ProximityHeuristic';
@@ -120,8 +121,10 @@ if (!isMainThread) {
                 if (task.blackConfig === 'A') winsB++;
                 else winsA++;
             }
+            // Send progress update
+            parentPort?.postMessage({ type: 'progress' });
         }
-        parentPort?.postMessage({ winsA, winsB });
+        parentPort?.postMessage({ type: 'done', winsA, winsB });
     };
 
     run().catch(err => {
@@ -133,30 +136,61 @@ if (!isMainThread) {
     const GAMES_PER_SIDE = 50;
     const OUT_FILE = path.join(__dirname, '..', 'benchmark_results.csv');
 
+    // Limit concurrency to the number of CPU cores, but fallback to a reasonable default like 4
+    const MAX_CONCURRENCY = Math.max(1, os.cpus().length - 1);
+
     async function main() {
-        console.log('Starting AI Benchmarks...');
+        console.log(`Starting AI Benchmarks with max concurrency of ${MAX_CONCURRENCY}...`);
         const stream = fs.createWriteStream(OUT_FILE);
         stream.write('Config A,Config B,Wins A (as Black),Wins B (as White),Wins A (as White),Wins B (as Black),Total Wins A,Total Wins B\n');
 
-        let completedPairs = 0;
-        const totalPairs = configs.length * (configs.length - 1) / 2;
+        let activeWorkers = 0;
+        const taskQueue: { task: MatchTask, resolve: (val: { winsA: number, winsB: number }) => void, reject: (err: any) => void }[] = [];
 
-        const runTask = (task: MatchTask): Promise<{ winsA: number, winsB: number }> => {
-            return new Promise((resolve, reject) => {
+        const checkQueue = () => {
+            while (activeWorkers < MAX_CONCURRENCY && taskQueue.length > 0) {
+                const { task, resolve, reject } = taskQueue.shift()!;
+                activeWorkers++;
+
                 const worker = new Worker(__filename, {
                     workerData: task,
                     // Use ts-node in worker threads
                     execArgv: ['--require', 'ts-node/register/transpile-only']
                 });
-                worker.on('message', resolve);
-                worker.on('error', reject);
-                worker.on('exit', (code) => {
-                    if (code !== 0) reject(new Error(`Worker stopped with exit code ${code}`));
+
+                worker.on('message', (msg) => {
+                    if (msg.type === 'progress') {
+                        process.stdout.write('.'); // Just print a dot for progress
+                    } else if (msg.type === 'done') {
+                        activeWorkers--;
+                        resolve({ winsA: msg.winsA, winsB: msg.winsB });
+                        checkQueue(); // Start next task in queue
+                    }
                 });
+
+                worker.on('error', (err) => {
+                    activeWorkers--;
+                    reject(err);
+                    checkQueue();
+                });
+
+                worker.on('exit', (code) => {
+                    if (code !== 0) {
+                        activeWorkers--;
+                        reject(new Error(`Worker stopped with exit code ${code}`));
+                        checkQueue();
+                    }
+                });
+            }
+        };
+
+        const runTask = (task: MatchTask): Promise<{ winsA: number, winsB: number }> => {
+            return new Promise((resolve, reject) => {
+                taskQueue.push({ task, resolve, reject });
+                checkQueue();
             });
         };
 
-        // Spawn all workers immediately instead of sequentially waiting for each pair
         interface PendingMatch {
             configA: AiConfig;
             configB: AiConfig;
@@ -164,16 +198,17 @@ if (!isMainThread) {
         }
 
         const pendingMatches: PendingMatch[] = [];
+        let totalGamesToRun = 0;
 
         for (let i = 0; i < configs.length; i++) {
             for (let j = i; j < configs.length; j++) {
                 const configA = configs[i]!;
                 const configB = configs[j]!;
 
-                console.log(`Queuing match: [${configToString(configA)}] vs [${configToString(configB)}]`);
-
                 const taskABlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'A' };
                 const taskBBlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'B' };
+
+                totalGamesToRun += GAMES_PER_SIDE * 2;
 
                 const resultPromise = Promise.all([
                     runTask(taskABlack),
@@ -188,9 +223,14 @@ if (!isMainThread) {
             }
         }
 
+        console.log(`Queued ${pendingMatches.length} matches (${totalGamesToRun} games total). Starting execution...`);
+
         // Wait for all matches to complete and write them out
         for (const match of pendingMatches) {
             const [resultABlack, resultBBlack] = await match.resultPromise;
+
+            // Print a newline so the progress dots don't overwrite the result
+            process.stdout.write('\n');
 
             const totalWinsA = resultABlack.winsA + resultBBlack.winsA;
             const totalWinsB = resultABlack.winsB + resultBBlack.winsB;

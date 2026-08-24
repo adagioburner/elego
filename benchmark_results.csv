@@ -1,1 +1,10 @@
 Config A,Config B,Wins A (as Black),Wins B (as White),Wins A (as White),Wins B (as Black),Total Wins A,Total Wins B
+Random-RandomRollout,Random-RandomRollout,0,1,1,0,1,1
+Random-RandomRollout,Random-ProximityHeuristic,0,1,0,1,0,2
+Random-RandomRollout,BestProximity-RandomRollout,1,0,1,0,2,0
+Random-RandomRollout,BestProximity-ProximityHeuristic,0,1,1,0,1,1
+Random-RandomRollout,RandomImprovingProximity-RandomRollout,1,0,1,0,2,0
+Random-RandomRollout,RandomImprovingProximity-ProximityHeuristic,0,1,1,0,1,1
+Random-ProximityHeuristic,Random-ProximityHeuristic,0,1,1,0,1,1
+Random-ProximityHeuristic,BestProximity-RandomRollout,0,1,1,0,1,1
+Random-ProximityHeuristic,BestProximity-ProximityHeuristic,0,1,1,0,1,1
