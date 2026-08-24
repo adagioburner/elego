@@ -1,6 +1,6 @@
 import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameState } from '../interfaces/GameState';
-import { Move } from '../interfaces/Move';
+import { Position } from '../interfaces/Position';
 import { Player } from '../interfaces/Player';
 
 const RESTRICTED_PLACEMENT_TURN_THRESHOLD = 7;
@@ -30,26 +30,26 @@ export class GameEngine implements IGameEngine {
     return this.currentState;
   }
 
-  getValidMoves(state: GameState): Move[] {
-    const validMoves: Move[] = [];
+  getValidPositions(state: GameState): Position[] {
+    const validPositions: Position[] = [];
     const isMainPhase = state.turnNumber >= RESTRICTED_PLACEMENT_TURN_THRESHOLD;
 
     for (let x = 0; x < BOARD_SIZE; x++) {
       for (let y = 0; y < BOARD_SIZE; y++) {
         if (state.board[y][x] === Player.None) {
           if (!isMainPhase) {
-            validMoves.push({ x, y });
+            validPositions.push({ x, y });
           } else {
             // Check for adjacency to at least one piece of the current player's color
             if (this.isAdjacentToOwnPiece(state, x, y, state.currentPlayer)) {
-              validMoves.push({ x, y });
+              validPositions.push({ x, y });
             }
           }
         }
       }
     }
 
-    return validMoves;
+    return validPositions;
   }
 
   private isAdjacentToOwnPiece(state: GameState, x: number, y: number, player: Player): boolean {
@@ -69,19 +69,19 @@ export class GameEngine implements IGameEngine {
     return false;
   }
 
-  applyMoveToCurrent(move: Move): boolean {
-    const validMoves = this.getValidMoves(this.currentState);
-    const isValid = validMoves.some(m => m.x === move.x && m.y === move.y);
+  applyPositionToCurrent(move: Position): boolean {
+    const validPositions = this.getValidPositions(this.currentState);
+    const isValid = validPositions.some(m => m.x === move.x && m.y === move.y);
 
     if (isValid) {
-      this.currentState = this.simulateMove(this.currentState, move);
+      this.currentState = this.simulatePosition(this.currentState, move);
       return true;
     }
 
     return false;
   }
 
-  simulateMove(state: GameState, move: Move): GameState {
+  simulatePosition(state: GameState, move: Position): GameState {
     const newBoard = state.board.map(row => [...row]);
     newBoard[move.y][move.x] = state.currentPlayer;
 
@@ -91,13 +91,13 @@ export class GameEngine implements IGameEngine {
       board: newBoard,
       currentPlayer: nextPlayer,
       turnNumber: state.turnNumber + 1,
-      lastMove: { ...move }
+      lastPosition: { ...move }
     };
   }
 
   checkWinner(state: GameState): Player | 'Ongoing' {
-    const validMoves = this.getValidMoves(state);
-    if (validMoves.length === 0) {
+    const validPositions = this.getValidPositions(state);
+    if (validPositions.length === 0) {
       // The current player has no valid moves, so the other player wins
       return state.currentPlayer === Player.Black ? Player.White : Player.Black;
     }

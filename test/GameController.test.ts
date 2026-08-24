@@ -23,15 +23,15 @@ describe('GameController Component', () => {
     engineMock = {
       initializeGame: jest.fn(),
       getGameState: jest.fn().mockReturnValue(mockState),
-      getValidMoves: jest.fn(),
-      applyMoveToCurrent: jest.fn(),
-      simulateMove: jest.fn(),
+      getValidPositions: jest.fn(),
+      applyPositionToCurrent: jest.fn(),
+      simulatePosition: jest.fn(),
       checkWinner: jest.fn().mockReturnValue('Ongoing')
     };
 
     displayMock = {
       renderBoard: jest.fn(),
-      showInvalidMoveError: jest.fn(),
+      showInvalidPositionError: jest.fn(),
       bindSquareClick: jest.fn()
     };
 
@@ -50,8 +50,8 @@ describe('GameController Component', () => {
       setThinkTime: jest.fn(),
       setSimulationMode: jest.fn(),
       setExpansionStrategy: jest.fn(),
-      calculateBestMove: jest.fn().mockResolvedValue({ x: 0, y: 0 }),
-      getStats: jest.fn().mockReturnValue({ totalNodes: 10, calculationTimeMs: 100, bestMoveWinRate: 0.5 })
+      calculateBestPosition: jest.fn().mockResolvedValue({ x: 0, y: 0 }),
+      getStats: jest.fn().mockReturnValue({ totalNodes: 10, calculationTimeMs: 100, bestPositionWinRate: 0.5 })
     };
 
     window.confirm = jest.fn().mockReturnValue(true);
@@ -74,12 +74,12 @@ describe('GameController Component', () => {
       expect(displayMock.renderBoard).toHaveBeenCalledWith(mockState);
 
       // AI shouldn't be prompted if human plays first
-      expect(aiPlayerMock.calculateBestMove).not.toHaveBeenCalled();
+      expect(aiPlayerMock.calculateBestPosition).not.toHaveBeenCalled();
     });
 
     it('prompts AI move immediately if human plays second', () => {
       controller.startGame(false, 500);
-      expect(aiPlayerMock.calculateBestMove).toHaveBeenCalled();
+      expect(aiPlayerMock.calculateBestPosition).toHaveBeenCalled();
     });
 
     it('prompts for confirmation if restarting an active game, respects cancellation', () => {
@@ -103,10 +103,10 @@ describe('GameController Component', () => {
     });
   });
 
-  describe('handleHumanMoveInput', () => {
+  describe('handleHumanPositionInput', () => {
     it('ignores input if game is not started', () => {
-      controller.handleHumanMoveInput({ x: 0, y: 0 });
-      expect(engineMock.applyMoveToCurrent).not.toHaveBeenCalled();
+      controller.handleHumanPositionInput({ x: 0, y: 0 });
+      expect(engineMock.applyPositionToCurrent).not.toHaveBeenCalled();
     });
 
     it('blocks input and shows message if AI is thinking', () => {
@@ -115,34 +115,34 @@ describe('GameController Component', () => {
       // Force AI thinking state
       (controller as any).isAiThinking = true;
 
-      controller.handleHumanMoveInput({ x: 0, y: 0 });
+      controller.handleHumanPositionInput({ x: 0, y: 0 });
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('The computer is thinking. Please wait.');
-      expect(engineMock.applyMoveToCurrent).not.toHaveBeenCalled();
+      expect(engineMock.applyPositionToCurrent).not.toHaveBeenCalled();
     });
 
     it('handles invalid move properly', () => {
       controller.startGame(true, 500);
-      engineMock.applyMoveToCurrent.mockReturnValue(false);
+      engineMock.applyPositionToCurrent.mockReturnValue(false);
 
-      controller.handleHumanMoveInput({ x: 0, y: 0 });
+      controller.handleHumanPositionInput({ x: 0, y: 0 });
 
-      expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(expect.stringContaining('is invalid!'));
+      expect(displayMock.showInvalidPositionError).toHaveBeenCalledWith(expect.stringContaining('is invalid!'));
     });
 
     it('handles valid move, updates state, and prompts AI', async () => {
       controller.startGame(true, 500);
-      engineMock.applyMoveToCurrent.mockReturnValue(true);
+      engineMock.applyPositionToCurrent.mockReturnValue(true);
 
       const nextState = { ...mockState, currentPlayer: Player.White };
 
-      // First call (in startgame) returns mockState, second call (in handleHumanMoveInput) returns nextState
+      // First call (in startgame) returns mockState, second call (in handleHumanPositionInput) returns nextState
       engineMock.getGameState.mockReturnValueOnce(mockState).mockReturnValueOnce(nextState).mockReturnValueOnce(nextState);
 
-      // We spy on promptAiMove to ensure it's called
-      const promptSpy = jest.spyOn(controller, 'promptAiMove');
+      // We spy on promptAiPosition to ensure it's called
+      const promptSpy = jest.spyOn(controller, 'promptAiPosition');
 
-      controller.handleHumanMoveInput({ x: 0, y: 0 });
+      controller.handleHumanPositionInput({ x: 0, y: 0 });
 
       expect(displayMock.renderBoard).toHaveBeenCalledWith(nextState);
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Human played at (0, 0)');
@@ -151,27 +151,27 @@ describe('GameController Component', () => {
 
     it('announces winner if game ends after human move', () => {
       controller.startGame(true, 500);
-      engineMock.applyMoveToCurrent.mockReturnValue(true);
+      engineMock.applyPositionToCurrent.mockReturnValue(true);
       engineMock.checkWinner.mockReturnValue(Player.Black); // Human wins
 
-      controller.handleHumanMoveInput({ x: 0, y: 0 });
+      controller.handleHumanPositionInput({ x: 0, y: 0 });
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Game Over! Black wins!');
-      expect(aiPlayerMock.calculateBestMove).not.toHaveBeenCalled(); // AI shouldn't move
+      expect(aiPlayerMock.calculateBestPosition).not.toHaveBeenCalled(); // AI shouldn't move
     });
   });
 
-  describe('promptAiMove', () => {
+  describe('promptAiPosition', () => {
     it('triggers AI calculation, applies move, updates UI, and ends turn', async () => {
       controller.startGame(true, 500);
       jest.clearAllMocks();
 
-      await controller.promptAiMove();
+      await controller.promptAiPosition();
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('AI is thinking...');
 
-      expect(aiPlayerMock.calculateBestMove).toHaveBeenCalledWith(mockState);
-      expect(engineMock.applyMoveToCurrent).toHaveBeenCalledWith({ x: 0, y: 0 });
+      expect(aiPlayerMock.calculateBestPosition).toHaveBeenCalledWith(mockState);
+      expect(engineMock.applyPositionToCurrent).toHaveBeenCalledWith({ x: 0, y: 0 });
 
       expect(displayMock.renderBoard).toHaveBeenCalled();
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('AI played at (0, 0)');
@@ -183,10 +183,10 @@ describe('GameController Component', () => {
       controller.startGame(true, 500);
 
       // StartGame calls checkWinner implicitly? Actually startGame just renders board.
-      // promptAiMove calls checkWinner once at the end.
+      // promptAiPosition calls checkWinner once at the end.
       engineMock.checkWinner.mockReturnValueOnce(Player.White);
 
-      await controller.promptAiMove();
+      await controller.promptAiPosition();
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Game Over! White wins!');
     });

@@ -1,11 +1,11 @@
 import { GameState } from './GameState';
-import { Move } from './Move';
+import { Position } from './Position';
 import { AiStats } from './AiStats';
 
 export interface IAiPlayer {
   setThinkTime(ms: number): void;
   setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic'): void;
   setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity'): void;
-  calculateBestMove(currentState: GameState): Promise<Move>;
+  calculateBestPosition(currentState: GameState): Promise<Position>;
   getStats(): AiStats; // Returns nodes searched, time taken, etc.
 }

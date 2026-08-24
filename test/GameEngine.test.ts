@@ -31,21 +31,21 @@ describe('GameEngine', () => {
       engine.initializeGame();
       const state = engine.getGameState();
 
-      const validMoves = engine.getValidMoves(state);
-      expect(validMoves.length).toBe(BOARD_SIZE * BOARD_SIZE); // 8x8 empty squares
+      const validPositions = engine.getValidPositions(state);
+      expect(validPositions.length).toBe(BOARD_SIZE * BOARD_SIZE); // 8x8 empty squares
     });
 
     it('should allow placement on any empty square after a few moves', () => {
       engine.initializeGame();
 
-      engine.applyMoveToCurrent({ x: 3, y: 3 }); // Turn 1
-      engine.applyMoveToCurrent({ x: 4, y: 4 }); // Turn 2
-      engine.applyMoveToCurrent({ x: 3, y: 4 }); // Turn 3
+      engine.applyPositionToCurrent({ x: 3, y: 3 }); // Turn 1
+      engine.applyPositionToCurrent({ x: 4, y: 4 }); // Turn 2
+      engine.applyPositionToCurrent({ x: 3, y: 4 }); // Turn 3
 
       const state = engine.getGameState();
-      const validMoves = engine.getValidMoves(state);
+      const validPositions = engine.getValidPositions(state);
 
-      expect(validMoves.length).toBe((BOARD_SIZE * BOARD_SIZE) - (state.turnNumber - 1));
+      expect(validPositions.length).toBe((BOARD_SIZE * BOARD_SIZE) - (state.turnNumber - 1));
     });
   });
 
@@ -55,44 +55,44 @@ describe('GameEngine', () => {
 
       // Setup a mock board state for Turn 7
       // We manually apply moves to reach turn 7
-      // Moves 1-6 are unresticted.
-      // Move 1 (B): 3,3
-      // Move 2 (W): 4,4
-      // Move 3 (B): 3,4
-      // Move 4 (W): 4,5
-      // Move 5 (B): 2,3
-      // Move 6 (W): 5,5
+      // Positions 1-6 are unresticted.
+      // Position 1 (B): 3,3
+      // Position 2 (W): 4,4
+      // Position 3 (B): 3,4
+      // Position 4 (W): 4,5
+      // Position 5 (B): 2,3
+      // Position 6 (W): 5,5
 
-      engine.applyMoveToCurrent({ x: 3, y: 3 });
-      engine.applyMoveToCurrent({ x: 4, y: 4 });
-      engine.applyMoveToCurrent({ x: 3, y: 4 });
-      engine.applyMoveToCurrent({ x: 4, y: 5 });
-      engine.applyMoveToCurrent({ x: 2, y: 3 });
-      engine.applyMoveToCurrent({ x: 5, y: 5 });
+      engine.applyPositionToCurrent({ x: 3, y: 3 });
+      engine.applyPositionToCurrent({ x: 4, y: 4 });
+      engine.applyPositionToCurrent({ x: 3, y: 4 });
+      engine.applyPositionToCurrent({ x: 4, y: 5 });
+      engine.applyPositionToCurrent({ x: 2, y: 3 });
+      engine.applyPositionToCurrent({ x: 5, y: 5 });
 
       const state = engine.getGameState();
       expect(state.turnNumber).toBe(7);
       expect(state.currentPlayer).toBe(Player.Black);
 
-      const validMoves = engine.getValidMoves(state);
+      const validPositions = engine.getValidPositions(state);
       // Valid adjacent spaces to B's pieces at (3,3), (3,4), (2,3)
       // They are scattered. Let's make sure it doesn't just return all empty spaces
-      expect(validMoves.length).toBeLessThan((BOARD_SIZE * BOARD_SIZE) - 6);
+      expect(validPositions.length).toBeLessThan((BOARD_SIZE * BOARD_SIZE) - 6);
 
       // E.g., (2,2) is adjacent to (3,3) and (2,3)
-      expect(validMoves.some(m => m.x === 2 && m.y === 2)).toBe(true);
+      expect(validPositions.some(m => m.x === 2 && m.y === 2)).toBe(true);
 
       // E.g., (0,0) is far away
-      expect(validMoves.some(m => m.x === 0 && m.y === 0)).toBe(false);
+      expect(validPositions.some(m => m.x === 0 && m.y === 0)).toBe(false);
     });
   });
 
-  describe('Move Application', () => {
+  describe('Position Application', () => {
     it('should update the board, toggle currentPlayer, and increment turnNumber', () => {
       engine.initializeGame();
       const initialState = engine.getGameState();
 
-      const success = engine.applyMoveToCurrent({ x: 0, y: 0 });
+      const success = engine.applyPositionToCurrent({ x: 0, y: 0 });
       expect(success).toBe(true);
 
       const newState = engine.getGameState();
@@ -100,17 +100,17 @@ describe('GameEngine', () => {
       expect(newState.board[0][0]).toBe(Player.Black); // Board updated
       expect(newState.currentPlayer).toBe(Player.White); // Player toggled
       expect(newState.turnNumber).toBe(2); // Turn incremented
-      expect(newState.lastMove).toEqual({ x: 0, y: 0 });
+      expect(newState.lastPosition).toEqual({ x: 0, y: 0 });
     });
 
     it('should reject invalid moves (occupied square)', () => {
       engine.initializeGame();
 
-      engine.applyMoveToCurrent({ x: 0, y: 0 });
+      engine.applyPositionToCurrent({ x: 0, y: 0 });
       const stateBefore = engine.getGameState();
 
       // Try to place on the same spot
-      const success = engine.applyMoveToCurrent({ x: 0, y: 0 });
+      const success = engine.applyPositionToCurrent({ x: 0, y: 0 });
       expect(success).toBe(false);
 
       const stateAfter = engine.getGameState();
@@ -121,15 +121,15 @@ describe('GameEngine', () => {
       engine.initializeGame();
 
       // 6 moves
-      engine.applyMoveToCurrent({ x: 3, y: 3 }); // B
-      engine.applyMoveToCurrent({ x: 4, y: 4 }); // W
-      engine.applyMoveToCurrent({ x: 3, y: 4 }); // B
-      engine.applyMoveToCurrent({ x: 4, y: 5 }); // W
-      engine.applyMoveToCurrent({ x: 2, y: 3 }); // B
-      engine.applyMoveToCurrent({ x: 5, y: 5 }); // W
+      engine.applyPositionToCurrent({ x: 3, y: 3 }); // B
+      engine.applyPositionToCurrent({ x: 4, y: 4 }); // W
+      engine.applyPositionToCurrent({ x: 3, y: 4 }); // B
+      engine.applyPositionToCurrent({ x: 4, y: 5 }); // W
+      engine.applyPositionToCurrent({ x: 2, y: 3 }); // B
+      engine.applyPositionToCurrent({ x: 5, y: 5 }); // W
 
       // Turn 7 (Black)
-      const success = engine.applyMoveToCurrent({ x: 0, y: 0 }); // Far away
+      const success = engine.applyPositionToCurrent({ x: 0, y: 0 }); // Far away
       expect(success).toBe(false);
     });
   });
@@ -144,12 +144,12 @@ describe('GameEngine', () => {
 
       // Let's create a board where Black has no adjacent empty spaces, but it's turn 7
       // Surround Black with White
-      state = engine.simulateMove(state, { x: 3, y: 3 }); // Turn 1, B
-      state = engine.simulateMove(state, { x: 2, y: 2 }); // Turn 2, W
-      state = engine.simulateMove(state, { x: 4, y: 4 }); // Turn 3, B
-      state = engine.simulateMove(state, { x: 2, y: 3 }); // Turn 4, W
-      state = engine.simulateMove(state, { x: 5, y: 5 }); // Turn 5, B
-      state = engine.simulateMove(state, { x: 2, y: 4 }); // Turn 6, W
+      state = engine.simulatePosition(state, { x: 3, y: 3 }); // Turn 1, B
+      state = engine.simulatePosition(state, { x: 2, y: 2 }); // Turn 2, W
+      state = engine.simulatePosition(state, { x: 4, y: 4 }); // Turn 3, B
+      state = engine.simulatePosition(state, { x: 2, y: 3 }); // Turn 4, W
+      state = engine.simulatePosition(state, { x: 5, y: 5 }); // Turn 5, B
+      state = engine.simulatePosition(state, { x: 2, y: 4 }); // Turn 6, W
 
       // Actually this is tricky, we can just artificially build a state.
       // We will fill the whole board with White, except one Black piece which is surrounded by White.

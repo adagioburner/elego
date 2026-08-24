@@ -1,6 +1,6 @@
 import { IDisplay } from '../interfaces/IDisplay';
 import { GameState } from '../interfaces/GameState';
-import { Move } from '../interfaces/Move';
+import { Position } from '../interfaces/Position';
 import { Player } from '../interfaces/Player';
 import { UIManager } from '../ui/UIManager';
 import { BOARD_SIZE } from './GameEngine';
@@ -8,7 +8,7 @@ import { BOARD_SIZE } from './GameEngine';
 export class Display implements IDisplay {
   private boardContainer: HTMLElement;
   private uiManager: UIManager;
-  private clickCallback?: (move: Move) => void;
+  private clickCallback?: (move: Position) => void;
   private audioContext?: AudioContext;
 
   constructor(boardContainer: HTMLElement, uiManager: UIManager) {
@@ -62,7 +62,7 @@ export class Display implements IDisplay {
         piece.classList.add('piece');
         piece.classList.add(player === Player.Black ? 'black' : 'white');
 
-        if (state.lastMove && state.lastMove.x === x && state.lastMove.y === y) {
+        if (state.lastPosition && state.lastPosition.x === x && state.lastPosition.y === y) {
           piece.classList.add('last-move');
         }
 
@@ -71,7 +71,7 @@ export class Display implements IDisplay {
     }
   }
 
-  showInvalidMoveError(message: string): void {
+  showInvalidPositionError(message: string): void {
     if (this.uiManager.isSoundEnabled()) {
       this.playErrorSound();
     }
@@ -104,7 +104,7 @@ export class Display implements IDisplay {
     }
   }
 
-  bindSquareClick(callback: (move: Move) => void): void {
+  bindSquareClick(callback: (move: Position) => void): void {
     this.clickCallback = callback;
   }
 }

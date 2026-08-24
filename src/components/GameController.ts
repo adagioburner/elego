@@ -3,7 +3,7 @@ import { IGameEngine } from '../interfaces/IGameEngine';
 import { IDisplay } from '../interfaces/IDisplay';
 import { IAiPlayer } from '../interfaces/IAiPlayer';
 import { UIManager } from '../ui/UIManager';
-import { Move } from '../interfaces/Move';
+import { Position } from '../interfaces/Position';
 import { GameStats } from '../interfaces/GameStats';
 import { Player } from '../interfaces/Player';
 
@@ -22,7 +22,7 @@ export class GameController implements IGameController {
     this.uiManager = uiManager;
     this.aiPlayer = aiPlayer;
 
-    this.display.bindSquareClick(this.handleHumanMoveInput.bind(this));
+    this.display.bindSquareClick(this.handleHumanPositionInput.bind(this));
   }
 
   startGame(humanPlaysFirst: boolean, aiThinkTimeMs: number): void {
@@ -50,11 +50,11 @@ export class GameController implements IGameController {
     this.display.renderBoard(initialState);
 
     if (!humanPlaysFirst) {
-      this.promptAiMove();
+      this.promptAiPosition();
     }
   }
 
-  handleHumanMoveInput(move: Move): void {
+  handleHumanPositionInput(move: Position): void {
     if (this.isGameOver) return;
 
     if (this.isAiThinking) {
@@ -68,11 +68,11 @@ export class GameController implements IGameController {
        return;
     }
 
-    const isValid = this.engine.applyMoveToCurrent(move);
+    const isValid = this.engine.applyPositionToCurrent(move);
 
     if (!isValid) {
-      const msg = `Move (${move.x}, ${move.y}) is invalid!`;
-      this.display.showInvalidMoveError(msg);
+      const msg = `Position (${move.x}, ${move.y}) is invalid!`;
+      this.display.showInvalidPositionError(msg);
       return;
     }
 
@@ -84,29 +84,29 @@ export class GameController implements IGameController {
     if (winner !== 'Ongoing') {
       this.announceResult(winner);
     } else {
-      this.promptAiMove();
+      this.promptAiPosition();
     }
   }
 
-  async promptAiMove(): Promise<void> {
+  async promptAiPosition(): Promise<void> {
     if (this.isGameOver) return;
 
     this.isAiThinking = true;
     this.uiManager.addMessage("AI is thinking...");
 
     const currentState = this.engine.getGameState();
-    const aiMove = await this.aiPlayer.calculateBestMove(currentState);
+    const aiPosition = await this.aiPlayer.calculateBestPosition(currentState);
 
-    this.engine.applyMoveToCurrent(aiMove);
+    this.engine.applyPositionToCurrent(aiPosition);
 
     const newState = this.engine.getGameState();
     this.display.renderBoard(newState);
-    this.uiManager.addMessage(`AI played at (${aiMove.x}, ${aiMove.y})`);
+    this.uiManager.addMessage(`AI played at (${aiPosition.x}, ${aiPosition.y})`);
 
     // Update AI stats
     const stats = this.aiPlayer.getStats();
     if (stats) {
-       this.uiManager.updateStats(stats.totalNodes, stats.calculationTimeMs, stats.bestMoveWinRate);
+       this.uiManager.updateStats(stats.totalNodes, stats.calculationTimeMs, stats.bestPositionWinRate);
     }
 
     this.isAiThinking = false;

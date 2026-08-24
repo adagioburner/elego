@@ -1,4 +1,4 @@
-export interface Move {
+export interface Position {
   x: number;
   y: number;
 }
