@@ -124,7 +124,7 @@ describe('GameController Component', () => {
 
       controller.handleHumanMoveInput({ x: 0, y: 0 });
 
-      expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(expect.stringContaining('Invalid move!'));
+      expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(expect.stringContaining('is invalid!'));
     });
 
     it('handles valid move, updates state, and prompts AI', async () => {

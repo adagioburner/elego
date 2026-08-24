@@ -70,7 +70,7 @@ export class GameController implements IGameController {
     const isValid = this.engine.applyMoveToCurrent(move);
 
     if (!isValid) {
-      const msg = `Invalid move! Move (${move.x}, ${move.y}) is invalid!`;
+      const msg = `Move (${move.x}, ${move.y}) is invalid!`;
       this.display.showInvalidMoveError(msg);
       return;
     }
