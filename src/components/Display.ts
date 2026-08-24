@@ -2,16 +2,17 @@ import { IDisplay } from '../interfaces/IDisplay';
 import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { Player } from '../interfaces/Player';
+import { UIManager } from '../ui/UIManager';
 
 export class Display implements IDisplay {
   private boardContainer: HTMLElement;
-  private isSoundEnabled: () => boolean;
+  private uiManager: UIManager;
   private clickCallback?: (move: Move) => void;
   private audioContext?: AudioContext;
 
-  constructor(boardContainer: HTMLElement, isSoundEnabled: () => boolean) {
+  constructor(boardContainer: HTMLElement, uiManager: UIManager) {
     this.boardContainer = boardContainer;
-    this.isSoundEnabled = isSoundEnabled;
+    this.uiManager = uiManager;
     this.initBoardDOM();
   }
 
@@ -70,10 +71,10 @@ export class Display implements IDisplay {
   }
 
   showInvalidMoveError(message: string): void {
-    if (this.isSoundEnabled()) {
+    if (this.uiManager.isSoundEnabled()) {
       this.playErrorSound();
     }
-    // Message logic itself is handled by UIManager in GameController
+    this.uiManager.addMessage(message);
   }
 
   private playErrorSound(): void {
@@ -104,38 +105,5 @@ export class Display implements IDisplay {
 
   bindSquareClick(callback: (move: Move) => void): void {
     this.clickCallback = callback;
-  }
-
-  showOverlay(message: string): void {
-    // For now we just implement it as an alert, but it could be an absolute DOM overlay.
-    // The design doc mentions 'showOverlay' for things like "AI is thinking..."
-    // but the prompt didn't strictly specify this beyond logging to UI manager.
-    // We'll leave it as a simple method for future expandability or implement a basic DOM overlay.
-    let overlay = this.boardContainer.querySelector('.board-overlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.className = 'board-overlay';
-      Object.assign((overlay as HTMLElement).style, {
-        position: 'absolute',
-        top: '0', left: '0', right: '0', bottom: '0',
-        backgroundColor: 'rgba(255,255,255,0.7)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        zIndex: '10'
-      });
-      this.boardContainer.appendChild(overlay);
-    }
-    overlay.textContent = message;
-    (overlay as HTMLElement).style.display = 'flex';
-  }
-
-  hideOverlay(): void {
-    const overlay = this.boardContainer.querySelector('.board-overlay') as HTMLElement;
-    if (overlay) {
-      overlay.style.display = 'none';
-    }
   }
 }

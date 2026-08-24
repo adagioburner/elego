@@ -57,7 +57,6 @@ interface IDisplay {
   renderBoard(state: GameState): void; // Should visually highlight state.lastMove to indicate the AI's recent move
   showInvalidMoveError(message: string): void; // Provides feedback when a user clicks an invalid square
   bindSquareClick(callback: (move: Move) => void): void;
-  showOverlay(message: string): void;
 }
 ```
 
@@ -287,7 +286,7 @@ handleHumanMoveInput(move: Move): void {
 ```
 
 ### 9.3. AI Response Generation
-1. **Triggering AI:** `GameController.promptAiMove()` is called. It may optionally show a "Thinking..." overlay or UI message.
+1. **Triggering AI:** `GameController.promptAiMove()` is called. It adds a "Thinking..." UI message.
 2. **Calculation:** `GameController` calls `AiPlayer.calculateBestMove(currentState)`. This is an asynchronous operation (`Promise`) so the UI does not freeze during MCTS evaluation.
 3. **AI Move Application:**
    - Once the `Promise` resolves with the AI's chosen `Move`, `GameController` applies it: `GameEngine.applyMoveToCurrent(aiMove)`.

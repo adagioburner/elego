@@ -47,7 +47,6 @@ export class GameController implements IGameController {
 
     const initialState = this.engine.getGameState();
     this.display.renderBoard(initialState);
-    this.display.hideOverlay();
 
     if (!humanPlaysFirst) {
       this.promptAiMove();
@@ -73,7 +72,6 @@ export class GameController implements IGameController {
     if (!isValid) {
       const msg = `Invalid move! Move (${move.x}, ${move.y}) is invalid!`;
       this.display.showInvalidMoveError(msg);
-      this.uiManager.addMessage(msg);
       return;
     }
 
@@ -94,7 +92,6 @@ export class GameController implements IGameController {
 
     this.isAiThinking = true;
     this.uiManager.addMessage("AI is thinking...");
-    this.display.showOverlay("AI is thinking...");
 
     const currentState = this.engine.getGameState();
     const aiMove = await this.aiPlayer.calculateBestMove(currentState);
@@ -102,7 +99,6 @@ export class GameController implements IGameController {
     this.engine.applyMoveToCurrent(aiMove);
 
     const newState = this.engine.getGameState();
-    this.display.hideOverlay();
     this.display.renderBoard(newState);
     this.uiManager.addMessage(`AI played at (${aiMove.x}, ${aiMove.y})`);
 
@@ -129,7 +125,6 @@ export class GameController implements IGameController {
     const winnerName = winner === Player.Black ? 'Black' : 'White';
     const message = `Game Over! ${winnerName} wins!`;
     this.uiManager.addMessage(message);
-    this.display.showOverlay(message);
   }
 
   toggleStatsPanel(show: boolean): void {

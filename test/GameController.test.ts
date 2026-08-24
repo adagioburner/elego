@@ -32,9 +32,7 @@ describe('GameController Component', () => {
     displayMock = {
       renderBoard: jest.fn(),
       showInvalidMoveError: jest.fn(),
-      bindSquareClick: jest.fn(),
-      showOverlay: jest.fn(),
-      hideOverlay: jest.fn()
+      bindSquareClick: jest.fn()
     };
 
     // Need to cast as UIManager mock is complex due to DOM elements
@@ -126,8 +124,7 @@ describe('GameController Component', () => {
 
       controller.handleHumanMoveInput({ x: 0, y: 0 });
 
-      expect(displayMock.showInvalidMoveError).toHaveBeenCalled();
-      expect(uiManagerMock.addMessage).toHaveBeenCalledWith(expect.stringContaining('Invalid move!'));
+      expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(expect.stringContaining('Invalid move!'));
     });
 
     it('handles valid move, updates state, and prompts AI', async () => {
@@ -157,7 +154,6 @@ describe('GameController Component', () => {
       controller.handleHumanMoveInput({ x: 0, y: 0 });
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Game Over! Black wins!');
-      expect(displayMock.showOverlay).toHaveBeenCalledWith('Game Over! Black wins!');
       expect(aiPlayerMock.calculateBestMove).not.toHaveBeenCalled(); // AI shouldn't move
     });
   });
@@ -170,12 +166,10 @@ describe('GameController Component', () => {
       await controller.promptAiMove();
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('AI is thinking...');
-      expect(displayMock.showOverlay).toHaveBeenCalledWith('AI is thinking...');
 
       expect(aiPlayerMock.calculateBestMove).toHaveBeenCalledWith(mockState);
       expect(engineMock.applyMoveToCurrent).toHaveBeenCalledWith({ x: 0, y: 0 });
 
-      expect(displayMock.hideOverlay).toHaveBeenCalled();
       expect(displayMock.renderBoard).toHaveBeenCalled();
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('AI played at (0, 0)');
 
@@ -192,7 +186,6 @@ describe('GameController Component', () => {
       await controller.promptAiMove();
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Game Over! White wins!');
-      expect(displayMock.showOverlay).toHaveBeenCalledWith('Game Over! White wins!');
     });
   });
 });

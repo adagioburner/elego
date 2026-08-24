@@ -2,15 +2,21 @@ import { Display } from '../src/components/Display';
 import { GameState } from '../src/interfaces/GameState';
 import { Player } from '../src/interfaces/Player';
 
+import { UIManager } from '../src/ui/UIManager';
+
 describe('Display Component', () => {
   let container: HTMLElement;
-  let isSoundEnabledMock: jest.Mock;
+  let uiManagerMock: jest.Mocked<UIManager>;
   let display: Display;
 
   beforeEach(() => {
     container = document.createElement('div');
     document.body.appendChild(container);
-    isSoundEnabledMock = jest.fn().mockReturnValue(true);
+
+    uiManagerMock = {
+      isSoundEnabled: jest.fn().mockReturnValue(true),
+      addMessage: jest.fn()
+    } as unknown as jest.Mocked<UIManager>;
 
     // Mock AudioContext to prevent errors in jsdom
     (window as any).AudioContext = jest.fn().mockImplementation(() => ({
@@ -29,7 +35,7 @@ describe('Display Component', () => {
       currentTime: 0,
     }));
 
-    display = new Display(container, isSoundEnabledMock);
+    display = new Display(container, uiManagerMock);
   });
 
   afterEach(() => {
@@ -87,30 +93,17 @@ describe('Display Component', () => {
     expect(emptyCell.innerHTML).toBe('');
   });
 
-  it('renders board without error when overlay is present', () => {
-    display.showOverlay('Testing Overlay');
-
-    const board = Array(8).fill(null).map(() => Array(8).fill(Player.None));
-    const state: GameState = {
-      board,
-      currentPlayer: Player.Black,
-      turnNumber: 1
-    };
-
-    expect(() => {
-      display.renderBoard(state);
-    }).not.toThrow();
-  });
-
-  it('plays sound when invalid move is made if sound is enabled', () => {
+  it('plays sound and calls addMessage when invalid move is made if sound is enabled', () => {
     display.showInvalidMoveError('Invalid move');
-    expect(isSoundEnabledMock).toHaveBeenCalled();
+    expect(uiManagerMock.isSoundEnabled).toHaveBeenCalled();
     expect((window as any).AudioContext).toHaveBeenCalled();
+    expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Invalid move');
   });
 
-  it('does not play sound if sound is disabled', () => {
-    isSoundEnabledMock.mockReturnValue(false);
+  it('does not play sound if sound is disabled but still calls addMessage', () => {
+    uiManagerMock.isSoundEnabled.mockReturnValue(false);
     display.showInvalidMoveError('Invalid move');
     expect((window as any).AudioContext).not.toHaveBeenCalled();
+    expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Invalid move');
   });
 });
