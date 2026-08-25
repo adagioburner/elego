@@ -102,8 +102,8 @@ export class UIManager {
     return parseInt(this.inputAiThinkTime?.value || '1000', 10);
   }
 
-  public getAiExpansionStrategy(): 'Random' | 'BestProximity' {
-    return (this.selectAiExpansionStrategy?.value as 'Random' | 'BestProximity') || 'Random';
+  public getAiExpansionStrategy(): 'Random' | 'BestProximity' | 'Pruned' {
+    return (this.selectAiExpansionStrategy?.value as 'Random' | 'BestProximity' | 'Pruned') || 'Random';
   }
 
   public getAiSimulationMode(): 'RandomRollout' | 'ProximityHeuristic' {

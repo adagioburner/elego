@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-type ExpansionStrategy = 'Random' | 'BestProximity';
+type ExpansionStrategy = 'Random' | 'BestProximity' | 'Pruned';
 type SimulationMode = 'RandomRollout' | 'ProximityHeuristic';
 
 interface AiConfig {
@@ -14,7 +14,7 @@ interface AiConfig {
     simulationMode: SimulationMode;
 }
 
-const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity'];
+const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'Pruned'];
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic'];
 
 const configs: AiConfig[] = [];
