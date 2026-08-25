@@ -3,8 +3,8 @@ import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { AiStats } from '../interfaces/AiStats';
 import { Player } from '../interfaces/Player';
-import { Move } from '../interfaces/Move';
 import { MCTSNode } from '../interfaces/MCTSNode';
+import { Position } from '../interfaces/Position';
 import { BOARD_SIZE, GameEngine } from './GameEngine';
 
 export class AiPlayer implements IAiPlayer {
@@ -108,42 +108,62 @@ export class AiPlayer implements IAiPlayer {
       return node; // Cannot expand further
     }
 
+    if (this.expansionStrategy !== 'Random' && !node.untriedMovesEvaluated) {
+      if (this.expansionStrategy === 'RandomImprovingProximity' && node.proximityScore === undefined) {
+        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      }
+
+      for (let i = 0; i < node.untriedMoves.length; i++) {
+        const scoredMove = node.untriedMoves[i];
+        if (scoredMove && scoredMove.score === undefined) {
+          const nextState = this.gameEngine.simulateMove(node.gameState, scoredMove.move);
+          scoredMove.score = this.calculateProximityScore(nextState, this.aiPlayerColor);
+        }
+      }
+
+      // Sort untried moves descending by score
+      node.untriedMoves.sort((a, b) => {
+        const scoreA = a.score !== undefined ? a.score : -Infinity;
+        const scoreB = b.score !== undefined ? b.score : -Infinity;
+        return scoreB - scoreA;
+      });
+
+      node.untriedMovesEvaluated = true;
+    }
+
     let chosenMoveIndex = -1;
 
     if (this.expansionStrategy === 'Random') {
       chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
     } else if (this.expansionStrategy === 'BestProximity') {
-      let bestScore = -Infinity;
-      let bestIndices: number[] = [];
+      let bestIndices: number[] = [0];
+      const bestScore = node.untriedMoves[0]?.score !== undefined ? node.untriedMoves[0].score : -Infinity;
 
-      for (let i = 0; i < node.untriedMoves.length; i++) {
-        const move = node.untriedMoves[i];
-        // The game engine simulates the move assuming it's current player's turn
-        // Set the state in a fresh engine or use simulateMove
-        const nextState = this.gameEngine.simulateMove(node.gameState, move);
-        const score = this.calculateProximityScore(nextState, this.aiPlayerColor);
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestIndices = [i];
-        } else if (score === bestScore) {
+      for (let i = 1; i < node.untriedMoves.length; i++) {
+        if (node.untriedMoves[i]?.score === bestScore) {
           bestIndices.push(i);
+        } else {
+          // Since it's sorted, once we hit a lower score we can stop
+          break;
         }
       }
 
       // Break ties randomly
       chosenMoveIndex = bestIndices[Math.floor(Math.random() * bestIndices.length)];
     } else if (this.expansionStrategy === 'RandomImprovingProximity') {
-      const currentScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      if (node.proximityScore === undefined) {
+        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      }
+      const currentScore = node.proximityScore;
       let improvingIndices: number[] = [];
 
       for (let i = 0; i < node.untriedMoves.length; i++) {
-        const move = node.untriedMoves[i];
-        const nextState = this.gameEngine.simulateMove(node.gameState, move);
-        const score = this.calculateProximityScore(nextState, this.aiPlayerColor);
-
-        if (score > currentScore) {
+        const moveScore = node.untriedMoves[i]?.score;
+        if (moveScore !== undefined && moveScore > currentScore) {
           improvingIndices.push(i);
+        } else if (moveScore !== undefined && moveScore <= currentScore) {
+          // Since it's sorted, once we hit a score <= currentScore we can stop
+          break;
         }
       }
 
@@ -155,8 +175,15 @@ export class AiPlayer implements IAiPlayer {
       }
     }
 
-    const move = node.untriedMoves[chosenMoveIndex];
-    node.untriedMoves.splice(chosenMoveIndex, 1);
+    const scoredMove = node.untriedMoves[chosenMoveIndex];
+    if (scoredMove) {
+      node.untriedMoves.splice(chosenMoveIndex, 1);
+    }
+
+    const move = scoredMove ? scoredMove.move : null;
+    if (!move) {
+      return node; // Shouldn't happen but defensive
+    }
 
     const nextState = this.gameEngine.simulateMove(node.gameState, move);
 
@@ -167,8 +194,12 @@ export class AiPlayer implements IAiPlayer {
       moveFromParent: move,
       visits: 0,
       wins: 0,
-      untriedMoves: this.gameEngine.getValidMoves(nextState)
+        untriedMoves: this.gameEngine.getValidMoves(nextState).map(m => ({ move: m }))
     };
+
+    if (scoredMove && scoredMove.score !== undefined) {
+      childNode.proximityScore = scoredMove.score;
+    }
 
     node.children.push(childNode);
     return childNode;
@@ -185,7 +216,9 @@ export class AiPlayer implements IAiPlayer {
       }
 
       // Evaluate the non-terminal state directly
-      const rawScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      const rawScore = node.proximityScore !== undefined
+        ? node.proximityScore
+        : this.calculateProximityScore(node.gameState, this.aiPlayerColor);
 
       // Count empty squares for accurate normalization
       let emptySquares = 0;
@@ -295,7 +328,7 @@ export class AiPlayer implements IAiPlayer {
         moveFromParent: null,
         visits: 0,
         wins: 0,
-        untriedMoves: this.gameEngine.getValidMoves(currentState)
+          untriedMoves: this.gameEngine.getValidMoves(currentState).map(m => ({ move: m }))
       };
 
       if (rootNode.untriedMoves.length === 0) {
@@ -342,7 +375,7 @@ export class AiPlayer implements IAiPlayer {
             resolve(mostVisitedChild.moveFromParent);
           } else {
             // Fallback (e.g. timeout before expanding any children)
-            const fallbackMove = rootNode.untriedMoves[0] || currentState.lastMove;
+              const fallbackMove = rootNode.untriedMoves.length > 0 ? rootNode.untriedMoves[0].move : currentState.lastMove;
             resolve(fallbackMove as Move);
           }
         } else {
