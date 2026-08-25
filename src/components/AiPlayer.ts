@@ -151,7 +151,10 @@ export class AiPlayer implements IAiPlayer {
       // Break ties randomly
       chosenMoveIndex = bestIndices[Math.floor(Math.random() * bestIndices.length)];
     } else if (this.expansionStrategy === 'RandomImprovingProximity') {
-      const currentScore = node.proximityScore !== undefined ? node.proximityScore : -Infinity;
+      if (node.proximityScore === undefined) {
+        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      }
+      const currentScore = node.proximityScore;
       let improvingIndices: number[] = [];
 
       for (let i = 0; i < node.untriedMoves.length; i++) {
