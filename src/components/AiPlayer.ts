@@ -83,8 +83,14 @@ export class AiPlayer implements IAiPlayer {
 
           if (aiDist < humanDist) {
             score++;
+            if (humanDist - aiDist >= 2) {
+              score++;
+            }
           } else if (humanDist < aiDist) {
             score--;
+            if (aiDist - humanDist >= 2) {
+              score--;
+            }
           }
         }
       }
@@ -258,7 +264,7 @@ export class AiPlayer implements IAiPlayer {
       // Count empty squares for accurate normalization
       const emptySquares = BOARD_SIZE * BOARD_SIZE - node.gameState.turnNumber + 1;
 
-      const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + emptySquares) / (2 * emptySquares)));
+      const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + 2 * emptySquares) / (4 * emptySquares)));
 
       if (this.simulationMode === 'ProximityHeuristic') {
         return normalizedScore;
