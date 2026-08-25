@@ -112,6 +112,72 @@ describe('AiPlayer Component', () => {
       calculateProximityScoreSpy.mockRestore();
       simulateMoveSpy.mockRestore();
     });
+
+    it('handles repeated scores correctly when pruning untried moves for Pruned strategy', () => {
+      aiPlayer.setExpansionStrategy('Pruned');
+
+      const engine = (aiPlayer as any).gameEngine;
+      const calculateProximityScoreSpy = jest.spyOn(aiPlayer as any, 'calculateProximityScore');
+      const simulateMoveSpy = jest.spyOn(engine, 'simulateMove');
+
+      const state: GameState = {
+        board: emptyBoard,
+        currentPlayer: Player.Black,
+        turnNumber: 1
+      };
+
+      // Mock untried moves with 15 moves.
+      const mockUntriedMoves = Array(15).fill(null).map((_, i) => ({
+        move: { x: i, y: 0 }
+      }));
+
+      // Set up scores with duplicates.
+      // Moves 0-4 get score 10
+      // Moves 5-14 get score 5
+      // This means we need 10 moves. 5 will come from score 10, and 5 will be randomly chosen from the 10 moves that scored 5.
+      calculateProximityScoreSpy.mockImplementation((s: GameState, p: Player) => {
+        return (s as any)._dummyScore;
+      });
+
+      simulateMoveSpy.mockImplementation((s: GameState, move: any) => {
+        return {
+          ...s,
+          _dummyScore: move.x < 5 ? 10 : 5
+        };
+      });
+
+      const node = {
+        gameState: state,
+        parent: null,
+        children: [],
+        moveFromParent: null,
+        visits: 0,
+        wins: 0,
+        untriedMoves: mockUntriedMoves
+      };
+
+      const expandMethod = (aiPlayer as any).expand.bind(aiPlayer);
+      const childNode = expandMethod(node);
+
+      // The limit is PRUNED_EXPANSION_LIMIT = 10
+      // 1 move was expanded into childNode
+      // So untriedMoves should have 9 moves left
+      expect(node.untriedMoves.length).toBe(9);
+
+      const retainedMoves = [...node.untriedMoves, { move: childNode.moveFromParent }];
+
+      const retainedScores = retainedMoves.map(m => m.move.x < 5 ? 10 : 5);
+
+      // We expect exactly 5 moves with score 10, and 5 moves with score 5
+      const score10Count = retainedScores.filter(s => s === 10).length;
+      const score5Count = retainedScores.filter(s => s === 5).length;
+
+      expect(score10Count).toBe(5);
+      expect(score5Count).toBe(5);
+
+      calculateProximityScoreSpy.mockRestore();
+      simulateMoveSpy.mockRestore();
+    });
   });
 
   describe('available moves (MCTS state generation)', () => {
