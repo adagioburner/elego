@@ -9,7 +9,7 @@ The `src/benchmark.ts` script sets up isolated games where two AI instances play
 **Expansion Strategies:**
 - `Random`
 - `BestProximity`
-- `RandomImprovingProximity`
+- `Pruned`
 
 **Simulation Modes:**
 - `RandomRollout`

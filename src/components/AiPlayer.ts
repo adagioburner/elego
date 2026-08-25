@@ -7,10 +7,12 @@ import { MCTSNode } from '../interfaces/MCTSNode';
 import { Position } from '../interfaces/Position';
 import { BOARD_SIZE, GameEngine } from './GameEngine';
 
+const PRUNED_EXPANSION_LIMIT = 10;
+
 export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 1000;
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' = 'RandomRollout';
-  private expansionStrategy: 'Random' | 'BestProximity' = 'Random';
+  private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Random';
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
@@ -99,7 +101,7 @@ export class AiPlayer implements IAiPlayer {
     this.simulationMode = mode;
   }
 
-  setExpansionStrategy(strategy: 'Random' | 'BestProximity'): void {
+  setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'Pruned'): void {
     this.expansionStrategy = strategy;
   }
 
@@ -125,12 +127,49 @@ export class AiPlayer implements IAiPlayer {
         return scoreB - scoreA;
       });
 
+      if (this.expansionStrategy === 'Pruned' && node.untriedMoves.length > PRUNED_EXPANSION_LIMIT) {
+        const thresholdScore = node.untriedMoves[PRUNED_EXPANSION_LIMIT - 1]?.score;
+        if (thresholdScore !== undefined) {
+          let firstIndexOfThreshold = -1;
+          let lastIndexOfThreshold = -1;
+          for (let i = 0; i < node.untriedMoves.length; i++) {
+            if (node.untriedMoves[i].score === thresholdScore) {
+              if (firstIndexOfThreshold === -1) firstIndexOfThreshold = i;
+              lastIndexOfThreshold = i;
+            }
+          }
+
+          const movesNeededFromThreshold = PRUNED_EXPANSION_LIMIT - firstIndexOfThreshold;
+          const thresholdMovesAvailable = lastIndexOfThreshold - firstIndexOfThreshold + 1;
+
+          if (movesNeededFromThreshold < thresholdMovesAvailable) {
+            // We need to randomly pick `movesNeededFromThreshold` from the ties
+            const ties = node.untriedMoves.slice(firstIndexOfThreshold, lastIndexOfThreshold + 1);
+            // Shuffle ties
+            for (let i = ties.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [ties[i], ties[j]] = [ties[j], ties[i]];
+            }
+
+            // Re-insert the chosen ties back into the array up to PRUNED_EXPANSION_LIMIT
+            node.untriedMoves.splice(
+              firstIndexOfThreshold,
+              ties.length,
+              ...ties.slice(0, movesNeededFromThreshold)
+            );
+          }
+        }
+
+        // Truncate to the limit
+        node.untriedMoves.length = Math.min(node.untriedMoves.length, PRUNED_EXPANSION_LIMIT);
+      }
+
       node.untriedMovesEvaluated = true;
     }
 
     let chosenMoveIndex = -1;
 
-    if (this.expansionStrategy === 'Random') {
+    if (this.expansionStrategy === 'Random' || this.expansionStrategy === 'Pruned') {
       chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
     } else if (this.expansionStrategy === 'BestProximity') {
       let bestIndices: number[] = [0];
