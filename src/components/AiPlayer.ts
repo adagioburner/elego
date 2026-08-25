@@ -10,7 +10,7 @@ import { BOARD_SIZE, GameEngine } from './GameEngine';
 export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 1000;
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' = 'RandomRollout';
-  private expansionStrategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity' = 'Random';
+  private expansionStrategy: 'Random' | 'BestProximity' = 'Random';
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
@@ -99,7 +99,7 @@ export class AiPlayer implements IAiPlayer {
     this.simulationMode = mode;
   }
 
-  setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity'): void {
+  setExpansionStrategy(strategy: 'Random' | 'BestProximity'): void {
     this.expansionStrategy = strategy;
   }
 
@@ -109,9 +109,6 @@ export class AiPlayer implements IAiPlayer {
     }
 
     if (this.expansionStrategy !== 'Random' && !node.untriedMovesEvaluated) {
-      if (this.expansionStrategy === 'RandomImprovingProximity' && node.proximityScore === undefined) {
-        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
-      }
 
       for (let i = 0; i < node.untriedMoves.length; i++) {
         const scoredMove = node.untriedMoves[i];
@@ -150,29 +147,6 @@ export class AiPlayer implements IAiPlayer {
 
       // Break ties randomly
       chosenMoveIndex = bestIndices[Math.floor(Math.random() * bestIndices.length)];
-    } else if (this.expansionStrategy === 'RandomImprovingProximity') {
-      if (node.proximityScore === undefined) {
-        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
-      }
-      const currentScore = node.proximityScore;
-      let improvingIndices: number[] = [];
-
-      for (let i = 0; i < node.untriedMoves.length; i++) {
-        const moveScore = node.untriedMoves[i]?.score;
-        if (moveScore !== undefined && moveScore > currentScore) {
-          improvingIndices.push(i);
-        } else if (moveScore !== undefined && moveScore <= currentScore) {
-          // Since it's sorted, once we hit a score <= currentScore we can stop
-          break;
-        }
-      }
-
-      if (improvingIndices.length > 0) {
-        chosenMoveIndex = improvingIndices[Math.floor(Math.random() * improvingIndices.length)];
-      } else {
-        // Fallback: choose a completely random move
-        chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
-      }
     }
 
     const scoredMove = node.untriedMoves[chosenMoveIndex];

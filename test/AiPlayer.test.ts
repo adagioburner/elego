@@ -103,18 +103,6 @@ describe('AiPlayer Component', () => {
       const move = await aiPlayer.calculateBestMove(initialState);
       expect(move).toBeDefined();
     });
-
-    it('returns a valid move with RandomImprovingProximity expansion strategy', async () => {
-      aiPlayer.setExpansionStrategy('RandomImprovingProximity');
-      const initialState: GameState = {
-        board: emptyBoard,
-        currentPlayer: Player.Black,
-        turnNumber: 1
-      };
-
-      const move = await aiPlayer.calculateBestMove(initialState);
-      expect(move).toBeDefined();
-    });
   });
 
   describe('calculateProximityScore (via reflection for testing)', () => {
