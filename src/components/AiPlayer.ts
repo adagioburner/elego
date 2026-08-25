@@ -194,6 +194,10 @@ export class AiPlayer implements IAiPlayer {
         untriedMoves: this.gameEngine.getValidMoves(nextState).map(m => ({ move: m }))
     };
 
+    if (scoredMove && scoredMove.score !== undefined) {
+      childNode.proximityScore = scoredMove.score;
+    }
+
     node.children.push(childNode);
     return childNode;
   }
