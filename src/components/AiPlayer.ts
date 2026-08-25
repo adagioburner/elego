@@ -236,10 +236,6 @@ export class AiPlayer implements IAiPlayer {
       }
 
       const validMoves = this.gameEngine.getValidMoves(currentState);
-      if (validMoves.length === 0) {
-         // Defensive check
-         return currentState.currentPlayer === this.aiPlayerColor ? 0 : 1;
-      }
 
       const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
       currentState = this.gameEngine.simulateMove(currentState, randomMove);
@@ -262,14 +258,7 @@ export class AiPlayer implements IAiPlayer {
         : this.calculateProximityScore(node.gameState, this.aiPlayerColor);
 
       // Count empty squares for accurate normalization
-      let emptySquares = 0;
-      for (let y = 0; y < BOARD_SIZE; y++) {
-        for (let x = 0; x < BOARD_SIZE; x++) {
-          if (node.gameState.board[y][x] === Player.None) {
-            emptySquares++;
-          }
-        }
-      }
+      const emptySquares = BOARD_SIZE * BOARD_SIZE - node.gameState.turnNumber + 1;
 
       const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + emptySquares) / (2 * emptySquares)));
 
