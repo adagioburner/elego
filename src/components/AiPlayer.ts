@@ -133,9 +133,14 @@ export class AiPlayer implements IAiPlayer {
           let firstIndexOfThreshold = -1;
           let lastIndexOfThreshold = -1;
           for (let i = 0; i < node.untriedMoves.length; i++) {
-            if (node.untriedMoves[i].score === thresholdScore) {
-              if (firstIndexOfThreshold === -1) firstIndexOfThreshold = i;
+            const currentScore = node.untriedMoves[i].score;
+            if (currentScore === thresholdScore) {
+              if (firstIndexOfThreshold === -1) {
+                firstIndexOfThreshold = i;
+              }
               lastIndexOfThreshold = i;
+            } else if (currentScore !== undefined && currentScore < thresholdScore) {
+              break;
             }
           }
 
