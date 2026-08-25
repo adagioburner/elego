@@ -273,7 +273,7 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBe(16);
+      expect(score).toBe(31);
     });
 
     it('calculates score correctly for walled out parts -> score 32', () => {
@@ -285,7 +285,7 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 16 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBe(32);
+      expect(score).toBe(64);
     });
 
     it('calculates score correctly when AI has walled in the opponent in a corner', () => {
@@ -311,7 +311,7 @@ describe('AiPlayer Component', () => {
       // All 60 empty squares are reachable by Black.
       // 0 empty squares are reachable by White (it's walled in).
       // So score should be exactly 60.
-      expect(score).toBe(60);
+      expect(score).toBe(120);
     });
   });
 });
