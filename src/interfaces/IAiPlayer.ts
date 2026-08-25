@@ -4,8 +4,8 @@ import { AiStats } from './AiStats';
 
 export interface IAiPlayer {
   setThinkTime(ms: number): void;
-  setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic'): void;
-  setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity'): void;
+  setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid'): void;
+  setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'Pruned'): void;
   calculateBestMove(currentState: GameState): Promise<Move>;
   getStats(): AiStats; // Returns nodes searched, time taken, etc.
 }

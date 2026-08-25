@@ -7,10 +7,12 @@ import { MCTSNode } from '../interfaces/MCTSNode';
 import { Position } from '../interfaces/Position';
 import { BOARD_SIZE, GameEngine } from './GameEngine';
 
+const PRUNED_EXPANSION_LIMIT = 10;
+
 export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 1000;
-  private simulationMode: 'RandomRollout' | 'ProximityHeuristic' = 'RandomRollout';
-  private expansionStrategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity' = 'Random';
+  private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'RandomRollout';
+  private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Random';
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
@@ -81,8 +83,14 @@ export class AiPlayer implements IAiPlayer {
 
           if (aiDist < humanDist) {
             score++;
+            if (humanDist - aiDist >= 2) {
+              score++;
+            }
           } else if (humanDist < aiDist) {
             score--;
+            if (aiDist - humanDist >= 2) {
+              score--;
+            }
           }
         }
       }
@@ -95,11 +103,11 @@ export class AiPlayer implements IAiPlayer {
     this.thinkTimeMs = ms;
   }
 
-  setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic'): void {
+  setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid'): void {
     this.simulationMode = mode;
   }
 
-  setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'RandomImprovingProximity'): void {
+  setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'Pruned'): void {
     this.expansionStrategy = strategy;
   }
 
@@ -109,10 +117,6 @@ export class AiPlayer implements IAiPlayer {
     }
 
     if (this.expansionStrategy !== 'Random' && !node.untriedMovesEvaluated) {
-      if (this.expansionStrategy === 'RandomImprovingProximity' && node.proximityScore === undefined) {
-        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
-      }
-
       for (let i = 0; i < node.untriedMoves.length; i++) {
         const scoredMove = node.untriedMoves[i];
         if (scoredMove && scoredMove.score === undefined) {
@@ -128,12 +132,54 @@ export class AiPlayer implements IAiPlayer {
         return scoreB - scoreA;
       });
 
+      if (this.expansionStrategy === 'Pruned' && node.untriedMoves.length > PRUNED_EXPANSION_LIMIT) {
+        const thresholdScore = node.untriedMoves[PRUNED_EXPANSION_LIMIT - 1]?.score;
+        if (thresholdScore !== undefined) {
+          let firstIndexOfThreshold = -1;
+          let lastIndexOfThreshold = -1;
+          for (let i = 0; i < node.untriedMoves.length; i++) {
+            const currentScore = node.untriedMoves[i].score;
+            if (currentScore === thresholdScore) {
+              if (firstIndexOfThreshold === -1) {
+                firstIndexOfThreshold = i;
+              }
+              lastIndexOfThreshold = i;
+            } else if (currentScore !== undefined && currentScore < thresholdScore) {
+              break;
+            }
+          }
+
+          const movesNeededFromThreshold = PRUNED_EXPANSION_LIMIT - firstIndexOfThreshold;
+          const thresholdMovesAvailable = lastIndexOfThreshold - firstIndexOfThreshold + 1;
+
+          if (movesNeededFromThreshold < thresholdMovesAvailable) {
+            // We need to randomly pick `movesNeededFromThreshold` from the ties
+            const ties = node.untriedMoves.slice(firstIndexOfThreshold, lastIndexOfThreshold + 1);
+            // Shuffle ties
+            for (let i = ties.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [ties[i], ties[j]] = [ties[j], ties[i]];
+            }
+
+            // Re-insert the chosen ties back into the array up to PRUNED_EXPANSION_LIMIT
+            node.untriedMoves.splice(
+              firstIndexOfThreshold,
+              ties.length,
+              ...ties.slice(0, movesNeededFromThreshold)
+            );
+          }
+        }
+
+        // Truncate to the limit
+        node.untriedMoves.length = Math.min(node.untriedMoves.length, PRUNED_EXPANSION_LIMIT);
+      }
+
       node.untriedMovesEvaluated = true;
     }
 
     let chosenMoveIndex = -1;
 
-    if (this.expansionStrategy === 'Random') {
+    if (this.expansionStrategy === 'Random' || this.expansionStrategy === 'Pruned') {
       chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
     } else if (this.expansionStrategy === 'BestProximity') {
       let bestIndices: number[] = [0];
@@ -150,29 +196,6 @@ export class AiPlayer implements IAiPlayer {
 
       // Break ties randomly
       chosenMoveIndex = bestIndices[Math.floor(Math.random() * bestIndices.length)];
-    } else if (this.expansionStrategy === 'RandomImprovingProximity') {
-      if (node.proximityScore === undefined) {
-        node.proximityScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
-      }
-      const currentScore = node.proximityScore;
-      let improvingIndices: number[] = [];
-
-      for (let i = 0; i < node.untriedMoves.length; i++) {
-        const moveScore = node.untriedMoves[i]?.score;
-        if (moveScore !== undefined && moveScore > currentScore) {
-          improvingIndices.push(i);
-        } else if (moveScore !== undefined && moveScore <= currentScore) {
-          // Since it's sorted, once we hit a score <= currentScore we can stop
-          break;
-        }
-      }
-
-      if (improvingIndices.length > 0) {
-        chosenMoveIndex = improvingIndices[Math.floor(Math.random() * improvingIndices.length)];
-      } else {
-        // Fallback: choose a completely random move
-        chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
-      }
     }
 
     const scoredMove = node.untriedMoves[chosenMoveIndex];
@@ -205,8 +228,25 @@ export class AiPlayer implements IAiPlayer {
     return childNode;
   }
 
+  private runRandomRollout(initialState: GameState): number {
+    let currentState = initialState;
+    while (true) {
+      const validMoves = this.gameEngine.getValidMoves(currentState);
+
+      if (validMoves.length === 0) {
+         // The current player has no valid moves, so the other player wins
+         const winner = currentState.currentPlayer === Player.Black ? Player.White : Player.Black;
+         if (winner === this.aiPlayerColor) return 1;
+         return 0; // AI lost
+      }
+
+      const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+      currentState = this.gameEngine.simulateMove(currentState, randomMove);
+    }
+  }
+
   private simulate(node: MCTSNode): number {
-    if (this.simulationMode === 'ProximityHeuristic') {
+    if (this.simulationMode === 'ProximityHeuristic' || this.simulationMode === 'Hybrid') {
       // First check if it's already a terminal state
       const winner = this.gameEngine.checkWinner(node.gameState);
       if (winner !== 'Ongoing') {
@@ -221,43 +261,20 @@ export class AiPlayer implements IAiPlayer {
         : this.calculateProximityScore(node.gameState, this.aiPlayerColor);
 
       // Count empty squares for accurate normalization
-      let emptySquares = 0;
-      for (let y = 0; y < BOARD_SIZE; y++) {
-        for (let x = 0; x < BOARD_SIZE; x++) {
-          if (node.gameState.board[y][x] === Player.None) {
-            emptySquares++;
-          }
-        }
+      const emptySquares = BOARD_SIZE * BOARD_SIZE - node.gameState.turnNumber + 1;
+
+      const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + 2 * emptySquares) / (4 * emptySquares)));
+
+      if (this.simulationMode === 'ProximityHeuristic') {
+        return normalizedScore;
+      } else {
+        // Hybrid: average of normalized proximity score and random rollout score
+        const rolloutScore = this.runRandomRollout(node.gameState);
+        return (normalizedScore + rolloutScore) / 2;
       }
-
-      if (emptySquares === 0) return 0.5;
-
-      // Normalizing to [0, 1] for win probability compatibility in MCTS.
-      const normalizedScore = (rawScore + emptySquares) / (2 * emptySquares);
-      // Clamp between 0 and 1 just in case
-      return Math.max(0, Math.min(1, normalizedScore));
     } else {
       // Random Rollout
-      let currentState = node.gameState;
-      while (true) {
-        const winner = this.gameEngine.checkWinner(currentState);
-        if (winner !== 'Ongoing') {
-          // In EleGo, checkWinner returns the opponent of the player who has 0 valid moves
-          // Meaning if the current state has winner === aiPlayerColor, AI wins (score 1)
-          if (winner === this.aiPlayerColor) return 1;
-          if (winner === Player.None) return 0.5; // Shouldn't happen based on rules, but safe
-          return 0; // AI lost
-        }
-
-        const validMoves = this.gameEngine.getValidMoves(currentState);
-        if (validMoves.length === 0) {
-           // Defensive check
-           return currentState.currentPlayer === this.aiPlayerColor ? 0 : 1;
-        }
-
-        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-        currentState = this.gameEngine.simulateMove(currentState, randomMove);
-      }
+      return this.runRandomRollout(node.gameState);
     }
   }
 

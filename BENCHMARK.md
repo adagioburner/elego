@@ -9,11 +9,12 @@ The `src/benchmark.ts` script sets up isolated games where two AI instances play
 **Expansion Strategies:**
 - `Random`
 - `BestProximity`
-- `RandomImprovingProximity`
+- `Pruned`
 
 **Simulation Modes:**
 - `RandomRollout`
 - `ProximityHeuristic`
+- `Hybrid`
 
 The script uses Node.js `worker_threads` to run match evaluations in parallel. Every configuration pairs up against every other configuration (including itself) to play 100 total games (50 games as Black, 50 games as White).
 
