@@ -48,6 +48,70 @@ describe('AiPlayer Component', () => {
       const move = await aiPlayer.calculateBestMove(initialState);
       expect(move).toBeDefined();
     });
+
+    it('prunes untried moves and keeps the ones with highest proximity scores for Pruned strategy', () => {
+      aiPlayer.setExpansionStrategy('Pruned');
+
+      const engine = (aiPlayer as any).gameEngine;
+      const calculateProximityScoreSpy = jest.spyOn(aiPlayer as any, 'calculateProximityScore');
+      const simulateMoveSpy = jest.spyOn(engine, 'simulateMove');
+
+      // Create a mock state
+      const state: GameState = {
+        board: emptyBoard,
+        currentPlayer: Player.Black,
+        turnNumber: 1
+      };
+
+      // Mock untried moves with 15 moves.
+      const mockUntriedMoves = Array(15).fill(null).map((_, i) => ({
+        move: { x: i, y: 0 }
+      }));
+
+      // Set up our scores to be deterministic: move x=0 gets score 0, x=1 gets 1, ... x=14 gets 14
+      // We do this by mocking calculateProximityScore
+      calculateProximityScoreSpy.mockImplementation((s: GameState, p: Player) => {
+        // Find the move that lead to this state based on our mocked simulateMove
+        // But an easier way is to just return a sequence or base it on the state
+        // Let's make simulateMove return a dummy state with a special property
+        return (s as any)._dummyScore;
+      });
+
+      simulateMoveSpy.mockImplementation((s: GameState, move: any) => {
+        return {
+          ...s,
+          _dummyScore: move.x
+        };
+      });
+
+      const node = {
+        gameState: state,
+        parent: null,
+        children: [],
+        moveFromParent: null,
+        visits: 0,
+        wins: 0,
+        untriedMoves: mockUntriedMoves
+      };
+
+      const expandMethod = (aiPlayer as any).expand.bind(aiPlayer);
+      const childNode = expandMethod(node);
+
+      // The limit is PRUNED_EXPANSION_LIMIT = 10
+      // 1 move was expanded into childNode
+      // So untriedMoves should have 9 moves left
+      expect(node.untriedMoves.length).toBe(9);
+
+      // The total moves considered were the 10 best.
+      // So the 1 chosen move + 9 remaining untried moves should be the ones that had scores 14 down to 5.
+      const retainedMoves = [...node.untriedMoves, { move: childNode.moveFromParent }];
+
+      const retainedScores = retainedMoves.map(m => m.move.x).sort((a, b) => b - a);
+      expect(retainedScores).toEqual([14, 13, 12, 11, 10, 9, 8, 7, 6, 5]);
+
+      calculateProximityScoreSpy.mockRestore();
+      simulateMoveSpy.mockRestore();
+    });
   });
 
   describe('available moves (MCTS state generation)', () => {
