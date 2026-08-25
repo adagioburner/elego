@@ -1,7 +1,7 @@
 import { AiPlayer } from '../src/components/AiPlayer';
 import { GameState } from '../src/interfaces/GameState';
 import { Player } from '../src/interfaces/Player';
-import { BOARD_SIZE } from '../src/components/GameEngine';
+import { GameEngine, BOARD_SIZE } from '../src/components/GameEngine';
 
 describe('AiPlayer Component', () => {
   let aiPlayer: AiPlayer;
@@ -195,5 +195,217 @@ describe('AiPlayer Component', () => {
       // So score should be exactly 60.
       expect(score).toBe(60);
     });
+  });
+});
+
+describe('AiPlayer - ProximityHeuristic Walled-Off Scenarios', () => {
+  let ai: AiPlayer;
+  let engine: GameEngine;
+
+  beforeEach(() => {
+    engine = new GameEngine();
+    engine.initializeGame();
+    ai = new AiPlayer();
+    // Use an any cast to set the game engine for unit testing internal methods
+    (ai as any).gameEngine = engine;
+  });
+
+  it('should accurately report a win probability of 0% when the AI is completely walled off and losing', async () => {
+    ai.setSimulationMode('ProximityHeuristic');
+    ai.setThinkTime(200);
+
+    const state = engine.getGameState();
+    const board = state.board;
+    (ai as any).aiPlayerColor = Player.White;
+
+    // Create a scenario where White (AI) is completely walled in the top-left corner.
+    // W=1 (White), B=2 (Black), 0=Empty
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 60; // Main phase
+
+    await ai.calculateBestMove(state);
+
+    const stats = ai.getStats();
+
+    // The win probability should be 0, or at most very close to 0
+    expect(stats.bestMoveWinRate).toBeLessThan(0.01);
+  });
+
+  it('calculateProximityScore should correctly score the walled off state', () => {
+    ai.setSimulationMode('ProximityHeuristic');
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    // Same layout as above
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 60;
+    (ai as any).aiPlayerColor = Player.White;
+
+    const rawScore = (ai as any).calculateProximityScore(state, Player.White);
+
+    // AI has 1 empty square it's closer to. Human has 5 empty squares it's closer to.
+    // 1 - 5 = -4
+    expect(rawScore).toBe(-4);
+  });
+
+  it('simulate should correctly normalize the proximity score', () => {
+    ai.setSimulationMode('ProximityHeuristic');
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 60;
+    (ai as any).aiPlayerColor = Player.White;
+
+    const mockNode = {
+      gameState: state,
+      parent: null,
+      children: [],
+      moveFromParent: null,
+      visits: 0,
+      wins: 0,
+      untriedMoves: engine.getValidMoves(state)
+    };
+
+    const simulatedScore = (ai as any).simulate(mockNode);
+
+    // rawScore is -4, emptySquares is 6.
+    // (rawScore + emptySquares) / (2 * emptySquares)
+    // (-4 + 6) / 12 = 2 / 12 = 0.1666...
+    expect(simulatedScore).toBeCloseTo(0.166666, 4);
+  });
+
+  it('should accurately report a win probability of 0% when the AI is completely walled off and losing using RandomRollout', async () => {
+    ai.setSimulationMode('RandomRollout');
+    ai.setThinkTime(200);
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    (ai as any).aiPlayerColor = Player.White;
+
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 60; // Main phase
+
+    await ai.calculateBestMove(state);
+
+    const stats = ai.getStats();
+
+    // The win probability should be exactly 0
+    expect(stats.bestMoveWinRate).toBe(0);
+  });
+
+  it('simulate should handle a terminal state where the game is already won by the AI', () => {
+    ai.setSimulationMode('ProximityHeuristic');
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    (ai as any).aiPlayerColor = Player.White;
+
+    const layout = [
+      [2, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 0]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.Black;
+    state.turnNumber = 60;
+
+    const mockNode = {
+      gameState: state,
+      parent: null,
+      children: [],
+      moveFromParent: null,
+      visits: 0,
+      wins: 0,
+      untriedMoves: []
+    };
+
+    const simulatedScore = (ai as any).simulate(mockNode);
+
+    // AI has won, should return 1.
+    expect(simulatedScore).toBe(1);
   });
 });
