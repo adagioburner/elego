@@ -213,7 +213,9 @@ export class AiPlayer implements IAiPlayer {
       }
 
       // Evaluate the non-terminal state directly
-      const rawScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      const rawScore = node.proximityScore !== undefined
+        ? node.proximityScore
+        : this.calculateProximityScore(node.gameState, this.aiPlayerColor);
 
       // Count empty squares for accurate normalization
       let emptySquares = 0;
