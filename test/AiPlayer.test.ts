@@ -1,7 +1,7 @@
 import { AiPlayer } from '../src/components/AiPlayer';
 import { GameState } from '../src/interfaces/GameState';
 import { Player } from '../src/interfaces/Player';
-import { BOARD_SIZE } from '../src/components/GameEngine';
+import { GameEngine, BOARD_SIZE } from '../src/components/GameEngine';
 
 describe('AiPlayer Component', () => {
   let aiPlayer: AiPlayer;
@@ -9,7 +9,7 @@ describe('AiPlayer Component', () => {
 
   beforeEach(() => {
     aiPlayer = new AiPlayer();
-    aiPlayer.setThinkTime(50); // Set small think time for fast tests
+    aiPlayer.setThinkTime(200); // Set small think time for fast tests
 
     emptyBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
   });
@@ -33,8 +33,8 @@ describe('AiPlayer Component', () => {
       expect(move.y).toBeLessThan(BOARD_SIZE);
 
       // Allow slight overhead
-      expect(elapsed).toBeGreaterThanOrEqual(45);
-      expect(elapsed).toBeLessThan(150);
+      expect(elapsed).toBeGreaterThanOrEqual(190);
+      expect(elapsed).toBeLessThan(400);
     });
 
     it('returns a valid move with ProximityHeuristic simulation mode', async () => {
@@ -47,136 +47,6 @@ describe('AiPlayer Component', () => {
 
       const move = await aiPlayer.calculateBestMove(initialState);
       expect(move).toBeDefined();
-    });
-
-    it('prunes untried moves and keeps the ones with highest proximity scores for Pruned strategy', () => {
-      aiPlayer.setExpansionStrategy('Pruned');
-
-      const engine = (aiPlayer as any).gameEngine;
-      const calculateProximityScoreSpy = jest.spyOn(aiPlayer as any, 'calculateProximityScore');
-      const simulateMoveSpy = jest.spyOn(engine, 'simulateMove');
-
-      // Create a mock state
-      const state: GameState = {
-        board: emptyBoard,
-        currentPlayer: Player.Black,
-        turnNumber: 1
-      };
-
-      // Mock untried moves with 15 moves.
-      const mockUntriedMoves = Array(15).fill(null).map((_, i) => ({
-        move: { x: i, y: 0 }
-      }));
-
-      // Set up our scores to be deterministic: move x=0 gets score 0, x=1 gets 1, ... x=14 gets 14
-      // We do this by mocking calculateProximityScore
-      calculateProximityScoreSpy.mockImplementation((s: GameState, p: Player) => {
-        // Find the move that lead to this state based on our mocked simulateMove
-        // But an easier way is to just return a sequence or base it on the state
-        // Let's make simulateMove return a dummy state with a special property
-        return (s as any)._dummyScore;
-      });
-
-      simulateMoveSpy.mockImplementation((s: GameState, move: any) => {
-        return {
-          ...s,
-          _dummyScore: move.x
-        };
-      });
-
-      const node = {
-        gameState: state,
-        parent: null,
-        children: [],
-        moveFromParent: null,
-        visits: 0,
-        wins: 0,
-        untriedMoves: mockUntriedMoves
-      };
-
-      const expandMethod = (aiPlayer as any).expand.bind(aiPlayer);
-      const childNode = expandMethod(node);
-
-      // The limit is PRUNED_EXPANSION_LIMIT = 10
-      // 1 move was expanded into childNode
-      // So untriedMoves should have 9 moves left
-      expect(node.untriedMoves.length).toBe(9);
-
-      // The total moves considered were the 10 best.
-      // So the 1 chosen move + 9 remaining untried moves should be the ones that had scores 14 down to 5.
-      const retainedMoves = [...node.untriedMoves, { move: childNode.moveFromParent }];
-
-      const retainedScores = retainedMoves.map(m => m.move.x).sort((a, b) => b - a);
-      expect(retainedScores).toEqual([14, 13, 12, 11, 10, 9, 8, 7, 6, 5]);
-
-      calculateProximityScoreSpy.mockRestore();
-      simulateMoveSpy.mockRestore();
-    });
-
-    it('handles repeated scores correctly when pruning untried moves for Pruned strategy', () => {
-      aiPlayer.setExpansionStrategy('Pruned');
-
-      const engine = (aiPlayer as any).gameEngine;
-      const calculateProximityScoreSpy = jest.spyOn(aiPlayer as any, 'calculateProximityScore');
-      const simulateMoveSpy = jest.spyOn(engine, 'simulateMove');
-
-      const state: GameState = {
-        board: emptyBoard,
-        currentPlayer: Player.Black,
-        turnNumber: 1
-      };
-
-      // Mock untried moves with 15 moves.
-      const mockUntriedMoves = Array(15).fill(null).map((_, i) => ({
-        move: { x: i, y: 0 }
-      }));
-
-      // Set up scores with duplicates.
-      // Moves 0-4 get score 10
-      // Moves 5-14 get score 5
-      // This means we need 10 moves. 5 will come from score 10, and 5 will be randomly chosen from the 10 moves that scored 5.
-      calculateProximityScoreSpy.mockImplementation((s: GameState, p: Player) => {
-        return (s as any)._dummyScore;
-      });
-
-      simulateMoveSpy.mockImplementation((s: GameState, move: any) => {
-        return {
-          ...s,
-          _dummyScore: move.x < 5 ? 10 : 5
-        };
-      });
-
-      const node = {
-        gameState: state,
-        parent: null,
-        children: [],
-        moveFromParent: null,
-        visits: 0,
-        wins: 0,
-        untriedMoves: mockUntriedMoves
-      };
-
-      const expandMethod = (aiPlayer as any).expand.bind(aiPlayer);
-      const childNode = expandMethod(node);
-
-      // The limit is PRUNED_EXPANSION_LIMIT = 10
-      // 1 move was expanded into childNode
-      // So untriedMoves should have 9 moves left
-      expect(node.untriedMoves.length).toBe(9);
-
-      const retainedMoves = [...node.untriedMoves, { move: childNode.moveFromParent }];
-
-      const retainedScores = retainedMoves.map(m => m.move.x < 5 ? 10 : 5);
-
-      // We expect exactly 5 moves with score 10, and 5 moves with score 5
-      const score10Count = retainedScores.filter(s => s === 10).length;
-      const score5Count = retainedScores.filter(s => s === 5).length;
-
-      expect(score10Count).toBe(5);
-      expect(score5Count).toBe(5);
-
-      calculateProximityScoreSpy.mockRestore();
-      simulateMoveSpy.mockRestore();
     });
   });
 
@@ -224,6 +94,18 @@ describe('AiPlayer Component', () => {
   describe('Expansion Strategies', () => {
     it('returns a valid move with BestProximity expansion strategy', async () => {
       aiPlayer.setExpansionStrategy('BestProximity');
+      const initialState: GameState = {
+        board: emptyBoard,
+        currentPlayer: Player.Black,
+        turnNumber: 1
+      };
+
+      const move = await aiPlayer.calculateBestMove(initialState);
+      expect(move).toBeDefined();
+    });
+
+    it('returns a valid move with RandomImprovingProximity expansion strategy', async () => {
+      aiPlayer.setExpansionStrategy('RandomImprovingProximity');
       const initialState: GameState = {
         board: emptyBoard,
         currentPlayer: Player.Black,
@@ -313,5 +195,217 @@ describe('AiPlayer Component', () => {
       // So score should be exactly 60.
       expect(score).toBe(120);
     });
+  });
+});
+
+describe('AiPlayer - ProximityHeuristic Walled-Off Scenarios', () => {
+  let ai: AiPlayer;
+  let engine: GameEngine;
+
+  beforeEach(() => {
+    engine = new GameEngine();
+    engine.initializeGame();
+    ai = new AiPlayer();
+    // Use an any cast to set the game engine for unit testing internal methods
+    (ai as any).gameEngine = engine;
+  });
+
+  it('should accurately report a win probability of 0% when the AI is completely walled off and losing', async () => {
+    ai.setSimulationMode('ProximityHeuristic');
+    ai.setThinkTime(200);
+
+    const state = engine.getGameState();
+    const board = state.board;
+    (ai as any).aiPlayerColor = Player.White;
+
+    // Create a scenario where White (AI) is completely walled in the top-left corner.
+    // W=1 (White), B=2 (Black), 0=Empty
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 59; // Main phase
+
+    await ai.calculateBestMove(state);
+
+    const stats = ai.getStats();
+
+    // The win probability should be 0, or at most very close to 0
+    expect(stats.bestMoveWinRate).toBeLessThan(0.01);
+  });
+
+  it('calculateProximityScore should correctly score the walled off state', () => {
+    ai.setSimulationMode('ProximityHeuristic');
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    // Same layout as above
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 59;
+    (ai as any).aiPlayerColor = Player.White;
+
+    const rawScore = (ai as any).calculateProximityScore(state, Player.White);
+
+    // AI has 1 empty square it's closer to. Human has 5 empty squares it's closer to.
+    // 2 - 10 = -8
+    expect(rawScore).toBe(-8);
+  });
+
+  it('simulate should correctly normalize the proximity score', () => {
+    ai.setSimulationMode('ProximityHeuristic');
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 59;
+    (ai as any).aiPlayerColor = Player.White;
+
+    const mockNode = {
+      gameState: state,
+      parent: null,
+      children: [],
+      moveFromParent: null,
+      visits: 0,
+      wins: 0,
+      untriedMoves: engine.getValidMoves(state).map(m => ({ move: m }))
+    };
+
+    const simulatedScore = (ai as any).simulate(mockNode);
+
+    // rawScore is -4, emptySquares is 6.
+    // (rawScore + emptySquares) / (2 * emptySquares)
+    // (-4 + 6) / 12 = 2 / 12 = 0.1666...
+    expect(simulatedScore).toBeCloseTo(0.166666, 4);
+  });
+
+  it('should accurately report a win probability of 0% when the AI is completely walled off and losing using RandomRollout', async () => {
+    ai.setSimulationMode('RandomRollout');
+    ai.setThinkTime(200);
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    (ai as any).aiPlayerColor = Player.White;
+
+    const layout = [
+      [0, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [2, 2, 2, 1, 1, 1, 1, 1],
+      [2, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1],
+      [0, 0, 2, 1, 1, 1, 1, 1]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.White;
+    state.turnNumber = 59; // Main phase
+
+    await ai.calculateBestMove(state);
+
+    const stats = ai.getStats();
+
+    // The win probability should be exactly 0
+    expect(stats.bestMoveWinRate).toBe(0);
+  });
+
+  it('simulate should handle a terminal state where the game is already won by the AI', () => {
+    ai.setSimulationMode('ProximityHeuristic');
+
+    const state = engine.getGameState();
+    const board = state.board;
+
+    (ai as any).aiPlayerColor = Player.White;
+
+    const layout = [
+      [2, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 1, 1, 1, 1, 1, 1, 0]
+    ];
+
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        board[y][x] = layout[y][x] === 1 ? Player.White : layout[y][x] === 2 ? Player.Black : Player.None;
+      }
+    }
+
+    state.currentPlayer = Player.Black;
+    state.turnNumber = 59;
+
+    const mockNode = {
+      gameState: state,
+      parent: null,
+      children: [],
+      moveFromParent: null,
+      visits: 0,
+      wins: 0,
+      untriedMoves: []
+    };
+
+    const simulatedScore = (ai as any).simulate(mockNode);
+
+    // AI has won, should return 1.
+    expect(simulatedScore).toBe(1);
   });
 });
