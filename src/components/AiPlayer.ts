@@ -117,6 +117,7 @@ export class AiPlayer implements IAiPlayer {
     }
 
     if (this.expansionStrategy !== 'Random' && !node.untriedMovesEvaluated) {
+
       for (let i = 0; i < node.untriedMoves.length; i++) {
         const scoredMove = node.untriedMoves[i];
         if (scoredMove && scoredMove.score === undefined) {
@@ -385,7 +386,7 @@ export class AiPlayer implements IAiPlayer {
           this.stats = {
             totalNodes: rootNode.visits,
             calculationTimeMs: Date.now() - startTime,
-            bestMoveWinRate: mostVisitedChild.wins / mostVisitedChild.visits
+            bestMoveWinRate: mostVisitedChild ? mostVisitedChild.wins / mostVisitedChild.visits : 0
           };
 
           if (mostVisitedChild && mostVisitedChild.moveFromParent) {
