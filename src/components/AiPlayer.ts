@@ -11,7 +11,7 @@ const PRUNED_EXPANSION_LIMIT = 10;
 
 export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 1000;
-  private simulationMode: 'RandomRollout' | 'ProximityHeuristic' = 'RandomRollout';
+  private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'RandomRollout';
   private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Random';
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
@@ -97,7 +97,7 @@ export class AiPlayer implements IAiPlayer {
     this.thinkTimeMs = ms;
   }
 
-  setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic'): void {
+  setSimulationMode(mode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid'): void {
     this.simulationMode = mode;
   }
 
@@ -223,8 +223,31 @@ export class AiPlayer implements IAiPlayer {
     return childNode;
   }
 
+  private runRandomRollout(initialState: GameState): number {
+    let currentState = initialState;
+    while (true) {
+      const winner = this.gameEngine.checkWinner(currentState);
+      if (winner !== 'Ongoing') {
+        // In EleGo, checkWinner returns the opponent of the player who has 0 valid moves
+        // Meaning if the current state has winner === aiPlayerColor, AI wins (score 1)
+        if (winner === this.aiPlayerColor) return 1;
+        if (winner === Player.None) return 0.5; // Shouldn't happen based on rules, but safe
+        return 0; // AI lost
+      }
+
+      const validMoves = this.gameEngine.getValidMoves(currentState);
+      if (validMoves.length === 0) {
+         // Defensive check
+         return currentState.currentPlayer === this.aiPlayerColor ? 0 : 1;
+      }
+
+      const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+      currentState = this.gameEngine.simulateMove(currentState, randomMove);
+    }
+  }
+
   private simulate(node: MCTSNode): number {
-    if (this.simulationMode === 'ProximityHeuristic') {
+    if (this.simulationMode === 'ProximityHeuristic' || this.simulationMode === 'Hybrid') {
       // First check if it's already a terminal state
       const winner = this.gameEngine.checkWinner(node.gameState);
       if (winner !== 'Ongoing') {
@@ -248,34 +271,18 @@ export class AiPlayer implements IAiPlayer {
         }
       }
 
-      if (emptySquares === 0) return 0.5;
+      const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + emptySquares) / (2 * emptySquares)));
 
-      // Normalizing to [0, 1] for win probability compatibility in MCTS.
-      const normalizedScore = (rawScore + emptySquares) / (2 * emptySquares);
-      // Clamp between 0 and 1 just in case
-      return Math.max(0, Math.min(1, normalizedScore));
+      if (this.simulationMode === 'ProximityHeuristic') {
+        return normalizedScore;
+      } else {
+        // Hybrid: average of normalized proximity score and random rollout score
+        const rolloutScore = this.runRandomRollout(node.gameState);
+        return (normalizedScore + rolloutScore) / 2;
+      }
     } else {
       // Random Rollout
-      let currentState = node.gameState;
-      while (true) {
-        const winner = this.gameEngine.checkWinner(currentState);
-        if (winner !== 'Ongoing') {
-          // In EleGo, checkWinner returns the opponent of the player who has 0 valid moves
-          // Meaning if the current state has winner === aiPlayerColor, AI wins (score 1)
-          if (winner === this.aiPlayerColor) return 1;
-          if (winner === Player.None) return 0.5; // Shouldn't happen based on rules, but safe
-          return 0; // AI lost
-        }
-
-        const validMoves = this.gameEngine.getValidMoves(currentState);
-        if (validMoves.length === 0) {
-           // Defensive check
-           return currentState.currentPlayer === this.aiPlayerColor ? 0 : 1;
-        }
-
-        const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-        currentState = this.gameEngine.simulateMove(currentState, randomMove);
-      }
+      return this.runRandomRollout(node.gameState);
     }
   }
 

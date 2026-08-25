@@ -106,8 +106,8 @@ export class UIManager {
     return (this.selectAiExpansionStrategy?.value as 'Random' | 'BestProximity' | 'Pruned') || 'Random';
   }
 
-  public getAiSimulationMode(): 'RandomRollout' | 'ProximityHeuristic' {
-    return (this.selectAiSimulationMode?.value as 'RandomRollout' | 'ProximityHeuristic') || 'RandomRollout';
+  public getAiSimulationMode(): 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' {
+    return (this.selectAiSimulationMode?.value as 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid') || 'RandomRollout';
   }
 
   /**
