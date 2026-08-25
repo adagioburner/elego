@@ -226,16 +226,14 @@ export class AiPlayer implements IAiPlayer {
   private runRandomRollout(initialState: GameState): number {
     let currentState = initialState;
     while (true) {
-      const winner = this.gameEngine.checkWinner(currentState);
-      if (winner !== 'Ongoing') {
-        // In EleGo, checkWinner returns the opponent of the player who has 0 valid moves
-        // Meaning if the current state has winner === aiPlayerColor, AI wins (score 1)
-        if (winner === this.aiPlayerColor) return 1;
-        if (winner === Player.None) return 0.5; // Shouldn't happen based on rules, but safe
-        return 0; // AI lost
-      }
-
       const validMoves = this.gameEngine.getValidMoves(currentState);
+
+      if (validMoves.length === 0) {
+         // The current player has no valid moves, so the other player wins
+         const winner = currentState.currentPlayer === Player.Black ? Player.White : Player.Black;
+         if (winner === this.aiPlayerColor) return 1;
+         return 0; // AI lost
+      }
 
       const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
       currentState = this.gameEngine.simulateMove(currentState, randomMove);
