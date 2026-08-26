@@ -145,7 +145,7 @@ export class AiPlayer implements IAiPlayer {
         const scoredMove = node.untriedMoves[i];
         if (scoredMove && scoredMove.score === undefined) {
           const nextState = this.gameEngine.simulateMove(node.gameState, scoredMove.move);
-          scoredMove.score = this.calculateProximityScore(nextState, this.aiPlayerColor);
+          scoredMove.score = this.calculateProximityScore(nextState, node.gameState.currentPlayer);
         }
       }
 
@@ -244,10 +244,6 @@ export class AiPlayer implements IAiPlayer {
         untriedMoves: this.gameEngine.getValidMoves(nextState).map(m => ({ move: m }))
     };
 
-    if (scoredMove && scoredMove.score !== undefined) {
-      childNode.proximityScore = scoredMove.score;
-    }
-
     node.children.push(childNode);
     return childNode;
   }
@@ -280,9 +276,7 @@ export class AiPlayer implements IAiPlayer {
       }
 
       // Evaluate the non-terminal state directly
-      const normalizedScore = node.proximityScore !== undefined
-        ? node.proximityScore
-        : this.calculateProximityScore(node.gameState, this.aiPlayerColor);
+      const normalizedScore = this.calculateProximityScore(node.gameState, this.aiPlayerColor);
 
       if (this.simulationMode === 'ProximityHeuristic') {
         return normalizedScore;
