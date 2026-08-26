@@ -76,6 +76,7 @@ export class AiPlayer implements IAiPlayer {
     runBfs(humanQueue, humanDistances, aiPlayerColor);
 
     let score = 0;
+    let normalizationFactor = 0;
 
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
@@ -95,12 +96,18 @@ export class AiPlayer implements IAiPlayer {
              diff = humanDist - aiDist;
           }
 
-          score += Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
+          const clampedDiff = Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
+          score += clampedDiff;
+          normalizationFactor += Math.abs(clampedDiff);
         }
       }
     }
 
-    return score;
+    if (normalizationFactor === 0) {
+      return 0.5;
+    }
+
+    return (score / normalizationFactor + 1) / 2;
   }
 
   setThinkTime(ms: number): void {
@@ -136,8 +143,8 @@ export class AiPlayer implements IAiPlayer {
 
       // Sort untried moves descending by score
       node.untriedMoves.sort((a, b) => {
-        const scoreA = a.score !== undefined ? a.score : -Infinity;
-        const scoreB = b.score !== undefined ? b.score : -Infinity;
+        const scoreA = a.score !== undefined ? a.score : 0;
+        const scoreB = b.score !== undefined ? b.score : 0;
         return scoreB - scoreA;
       });
 
@@ -192,7 +199,7 @@ export class AiPlayer implements IAiPlayer {
       chosenMoveIndex = Math.floor(Math.random() * node.untriedMoves.length);
     } else if (this.expansionStrategy === 'BestProximity') {
       let bestIndices: number[] = [0];
-      const bestScore = node.untriedMoves[0]?.score !== undefined ? node.untriedMoves[0].score : -Infinity;
+      const bestScore = node.untriedMoves[0]?.score !== undefined ? node.untriedMoves[0].score : 0;
 
       for (let i = 1; i < node.untriedMoves.length; i++) {
         if (node.untriedMoves[i]?.score === bestScore) {
@@ -265,15 +272,9 @@ export class AiPlayer implements IAiPlayer {
       }
 
       // Evaluate the non-terminal state directly
-      const rawScore = node.proximityScore !== undefined
+      const normalizedScore = node.proximityScore !== undefined
         ? node.proximityScore
         : this.calculateProximityScore(node.gameState, this.aiPlayerColor);
-
-      // Count empty squares for accurate normalization
-      const emptySquares = BOARD_SIZE * BOARD_SIZE - node.gameState.turnNumber + 1;
-
-      const maxScorePerSquare = this.proximityScoreMax;
-      const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + maxScorePerSquare * emptySquares) / (2 * maxScorePerSquare * emptySquares)));
 
       if (this.simulationMode === 'ProximityHeuristic') {
         return normalizedScore;
