@@ -12,27 +12,47 @@ type SimulationMode = 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid';
 interface AiConfig {
     expansionStrategy: ExpansionStrategy;
     simulationMode: SimulationMode;
+    proximityScoreMax: number;
 }
 
 const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'Pruned'];
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic', 'Hybrid'];
 
+let parsedProximityScoreMax: number = 2;
+let parsedGamesPerPair: number = 50;
+
+// Parse command line arguments
+for (const arg of process.argv) {
+    if (arg.startsWith('ProximityScoreMax=')) {
+        const val = parseInt(arg.split('=')[1], 10);
+        if (!isNaN(val) && val > 0) {
+            parsedProximityScoreMax = val;
+        }
+    }
+    if (arg.startsWith('GamesPerPair=')) {
+        const val = parseInt(arg.split('=')[1], 10);
+        if (!isNaN(val)) {
+            parsedGamesPerPair = val;
+        }
+    }
+}
+
 const configs: AiConfig[] = [];
 for (const exp of EXPANSION_STRATEGIES) {
     for (const sim of SIMULATION_MODES) {
-        configs.push({ expansionStrategy: exp, simulationMode: sim });
+        configs.push({ expansionStrategy: exp, simulationMode: sim, proximityScoreMax: parsedProximityScoreMax });
     }
 }
 
 interface MatchTask {
-    configAIndex: number;
-    configBIndex: number;
+    configA: AiConfig;
+    configB: AiConfig;
     gamesPerPair: number; // For one side, e.g., 50
     blackConfig: 'A' | 'B';
 }
 
 function configToString(config: AiConfig): string {
-    return `${config.expansionStrategy}-${config.simulationMode}`;
+    return `${config.expansionStrategy}-${config.simulationMode}-${config.proximityScoreMax}`;
 }
 
 async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Promise<Player> {
@@ -43,10 +63,12 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
     playerBlack.setThinkTime(1000);
     playerBlack.setExpansionStrategy(configBlack.expansionStrategy);
     playerBlack.setSimulationMode(configBlack.simulationMode);
+    playerBlack.setProximityScoreMax(configBlack.proximityScoreMax);
 
     playerWhite.setThinkTime(1000);
     playerWhite.setExpansionStrategy(configWhite.expansionStrategy);
     playerWhite.setSimulationMode(configWhite.simulationMode);
+    playerWhite.setProximityScoreMax(configWhite.proximityScoreMax);
 
     let currentState = engine.getGameState();
 
@@ -103,8 +125,8 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
 
 if (!isMainThread) {
     const task: MatchTask = workerData;
-    const configA = configs[task.configAIndex]!;
-    const configB = configs[task.configBIndex]!;
+    const configA = task.configA;
+    const configB = task.configB;
 
     const configBlack = task.blackConfig === 'A' ? configA : configB;
     const configWhite = task.blackConfig === 'A' ? configB : configA;
@@ -132,7 +154,7 @@ if (!isMainThread) {
     });
 } else {
     // Main thread
-    const GAMES_PER_SIDE = 50;
+        const GAMES_PER_SIDE = parsedGamesPerPair;
     const OUT_FILE = path.join(__dirname, '..', 'benchmark_results.csv');
 
     async function main() {
@@ -197,8 +219,8 @@ if (!isMainThread) {
 
                 console.log(`Queuing match: [${configToString(configA)}] vs [${configToString(configB)}]`);
 
-                const taskABlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'A' };
-                const taskBBlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'B' };
+                const taskABlack: MatchTask = { configA, configB, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'A' };
+                const taskBBlack: MatchTask = { configA, configB, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'B' };
 
                 const resultPromise = Promise.all([
                     runTask(taskABlack),

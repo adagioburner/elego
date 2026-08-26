@@ -16,6 +16,7 @@ export class UIManager {
   public inputAiThinkTime: HTMLInputElement | null;
   public selectAiSimulationMode: HTMLSelectElement | null;
   public selectAiExpansionStrategy: HTMLSelectElement | null;
+  public inputAiProximityScoreMax: HTMLInputElement | null;
   public checkboxToggleStats: HTMLInputElement | null;
   public checkboxToggleSound: HTMLInputElement | null;
   public btnSaveOptions: HTMLButtonElement | null;
@@ -40,6 +41,7 @@ export class UIManager {
     this.inputAiThinkTime = document.getElementById('ai-think-time') as HTMLInputElement;
     this.selectAiSimulationMode = document.getElementById('ai-simulation-mode') as HTMLSelectElement;
     this.selectAiExpansionStrategy = document.getElementById('ai-expansion-strategy') as HTMLSelectElement;
+    this.inputAiProximityScoreMax = document.getElementById('ai-proximity-score-max') as HTMLInputElement;
     this.checkboxToggleStats = document.getElementById('toggle-stats-checkbox') as HTMLInputElement;
     this.checkboxToggleSound = document.getElementById('toggle-sound-checkbox') as HTMLInputElement;
     this.btnSaveOptions = document.getElementById('btn-save-options') as HTMLButtonElement;
@@ -104,6 +106,10 @@ export class UIManager {
 
   public getAiExpansionStrategy(): 'Random' | 'BestProximity' | 'Pruned' {
     return (this.selectAiExpansionStrategy?.value as 'Random' | 'BestProximity' | 'Pruned') || 'Random';
+  }
+
+  public getAiProximityScoreMax(): number {
+    return parseInt(this.inputAiProximityScoreMax?.value || '2', 10);
   }
 
   public getAiSimulationMode(): 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' {
