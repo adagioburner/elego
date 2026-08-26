@@ -13,12 +13,14 @@ interface AiConfig {
     expansionStrategy: ExpansionStrategy;
     simulationMode: SimulationMode;
     proximityScoreMax: number;
+    proximityScoreMin: number;
 }
 
 const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'Pruned'];
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic', 'Hybrid'];
 
 let parsedProximityScoreMax: number = 2;
+let parsedProximityScoreMin: number = 1;
 let parsedGamesPerPair: number = 50;
 
 // Parse command line arguments
@@ -27,6 +29,12 @@ for (const arg of process.argv) {
         const val = parseInt(arg.split('=')[1], 10);
         if (!isNaN(val) && val > 0) {
             parsedProximityScoreMax = val;
+        }
+    }
+    if (arg.startsWith('ProximityScoreMin=')) {
+        const val = parseInt(arg.split('=')[1], 10);
+        if (!isNaN(val) && val >= 0) {
+            parsedProximityScoreMin = val;
         }
     }
     if (arg.startsWith('GamesPerPair=')) {
@@ -40,7 +48,7 @@ for (const arg of process.argv) {
 const configs: AiConfig[] = [];
 for (const exp of EXPANSION_STRATEGIES) {
     for (const sim of SIMULATION_MODES) {
-        configs.push({ expansionStrategy: exp, simulationMode: sim, proximityScoreMax: parsedProximityScoreMax });
+        configs.push({ expansionStrategy: exp, simulationMode: sim, proximityScoreMax: parsedProximityScoreMax, proximityScoreMin: parsedProximityScoreMin });
     }
 }
 
@@ -52,7 +60,7 @@ interface MatchTask {
 }
 
 function configToString(config: AiConfig): string {
-    return `${config.expansionStrategy}-${config.simulationMode}-${config.proximityScoreMax}`;
+    return `${config.expansionStrategy}-${config.simulationMode}-${config.proximityScoreMax}-${config.proximityScoreMin}`;
 }
 
 async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Promise<Player> {
@@ -64,11 +72,13 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
     playerBlack.setExpansionStrategy(configBlack.expansionStrategy);
     playerBlack.setSimulationMode(configBlack.simulationMode);
     playerBlack.setProximityScoreMax(configBlack.proximityScoreMax);
+    playerBlack.setProximityScoreMin(configBlack.proximityScoreMin);
 
     playerWhite.setThinkTime(1000);
     playerWhite.setExpansionStrategy(configWhite.expansionStrategy);
     playerWhite.setSimulationMode(configWhite.simulationMode);
     playerWhite.setProximityScoreMax(configWhite.proximityScoreMax);
+    playerWhite.setProximityScoreMin(configWhite.proximityScoreMin);
 
     let currentState = engine.getGameState();
 

@@ -14,6 +14,7 @@ export class AiPlayer implements IAiPlayer {
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'RandomRollout';
   private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Random';
   private proximityScoreMax: number = 2; // Original logic had an effective max score of 2 per square
+  private proximityScoreMin: number = 1;
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
@@ -97,8 +98,11 @@ export class AiPlayer implements IAiPlayer {
           }
 
           const clampedDiff = Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
-          score += clampedDiff;
-          normalizationFactor += Math.abs(clampedDiff);
+
+          if (Math.abs(clampedDiff) >= this.proximityScoreMin) {
+            score += clampedDiff;
+            normalizationFactor += Math.abs(clampedDiff);
+          }
         }
       }
     }
@@ -124,6 +128,10 @@ export class AiPlayer implements IAiPlayer {
 
   setProximityScoreMax(max: number): void {
     this.proximityScoreMax = max;
+  }
+
+  setProximityScoreMin(min: number): void {
+    this.proximityScoreMin = min;
   }
 
   private expand(node: MCTSNode): MCTSNode {
