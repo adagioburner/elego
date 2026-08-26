@@ -8,31 +8,52 @@ import * as os from 'os';
 
 type ExpansionStrategy = 'Random' | 'BestProximity' | 'Pruned';
 type SimulationMode = 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid';
+type ProximityScoreMode = 'Original' | 'DistanceDifference';
 
 interface AiConfig {
     expansionStrategy: ExpansionStrategy;
     simulationMode: SimulationMode;
+    proximityScoreMode: ProximityScoreMode;
 }
 
 const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'Pruned'];
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic', 'Hybrid'];
 
+let parsedProximityScore: ProximityScoreMode = 'Original';
+let parsedGamesPerPair: number = 50;
+
+// Parse command line arguments
+for (const arg of process.argv) {
+    if (arg.startsWith('ProximityScore=')) {
+        const val = arg.split('=')[1];
+        if (val === 'DistanceDifference' || val === 'Original') {
+            parsedProximityScore = val;
+        }
+    }
+    if (arg.startsWith('GamesPerPair=')) {
+        const val = parseInt(arg.split('=')[1], 10);
+        if (!isNaN(val)) {
+            parsedGamesPerPair = val;
+        }
+    }
+}
+
 const configs: AiConfig[] = [];
 for (const exp of EXPANSION_STRATEGIES) {
     for (const sim of SIMULATION_MODES) {
-        configs.push({ expansionStrategy: exp, simulationMode: sim });
+        configs.push({ expansionStrategy: exp, simulationMode: sim, proximityScoreMode: parsedProximityScore });
     }
 }
 
 interface MatchTask {
-    configAIndex: number;
-    configBIndex: number;
+    configA: AiConfig;
+    configB: AiConfig;
     gamesPerPair: number; // For one side, e.g., 50
     blackConfig: 'A' | 'B';
 }
 
 function configToString(config: AiConfig): string {
-    return `${config.expansionStrategy}-${config.simulationMode}`;
+    return `${config.expansionStrategy}-${config.simulationMode}-${config.proximityScoreMode}`;
 }
 
 async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Promise<Player> {
@@ -43,10 +64,12 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
     playerBlack.setThinkTime(1000);
     playerBlack.setExpansionStrategy(configBlack.expansionStrategy);
     playerBlack.setSimulationMode(configBlack.simulationMode);
+    playerBlack.setProximityScoreMode(configBlack.proximityScoreMode);
 
     playerWhite.setThinkTime(1000);
     playerWhite.setExpansionStrategy(configWhite.expansionStrategy);
     playerWhite.setSimulationMode(configWhite.simulationMode);
+    playerWhite.setProximityScoreMode(configWhite.proximityScoreMode);
 
     let currentState = engine.getGameState();
 
@@ -103,8 +126,8 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
 
 if (!isMainThread) {
     const task: MatchTask = workerData;
-    const configA = configs[task.configAIndex]!;
-    const configB = configs[task.configBIndex]!;
+    const configA = task.configA;
+    const configB = task.configB;
 
     const configBlack = task.blackConfig === 'A' ? configA : configB;
     const configWhite = task.blackConfig === 'A' ? configB : configA;
@@ -132,7 +155,7 @@ if (!isMainThread) {
     });
 } else {
     // Main thread
-    const GAMES_PER_SIDE = 50;
+        const GAMES_PER_SIDE = parsedGamesPerPair;
     const OUT_FILE = path.join(__dirname, '..', 'benchmark_results.csv');
 
     async function main() {
@@ -197,8 +220,8 @@ if (!isMainThread) {
 
                 console.log(`Queuing match: [${configToString(configA)}] vs [${configToString(configB)}]`);
 
-                const taskABlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'A' };
-                const taskBBlack: MatchTask = { configAIndex: i, configBIndex: j, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'B' };
+                const taskABlack: MatchTask = { configA, configB, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'A' };
+                const taskBBlack: MatchTask = { configA, configB, gamesPerPair: GAMES_PER_SIDE, blackConfig: 'B' };
 
                 const resultPromise = Promise.all([
                     runTask(taskABlack),
