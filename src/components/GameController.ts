@@ -43,6 +43,7 @@ export class GameController implements IGameController {
     this.aiPlayer.setSimulationMode(this.uiManager.getAiSimulationMode());
     this.aiPlayer.setExpansionStrategy(this.uiManager.getAiExpansionStrategy());
     this.aiPlayer.setProximityScoreMax(this.uiManager.getAiProximityScoreMax());
+    this.aiPlayer.setProximityScoreMin(this.uiManager.getAiProximityScoreMin());
     this.humanPlayer = humanPlaysFirst ? Player.Black : Player.White;
 
     this.uiManager.updateStats(0, 0, 0);

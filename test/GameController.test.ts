@@ -44,7 +44,8 @@ describe('GameController Component', () => {
       getAiThinkTimeMs: jest.fn().mockReturnValue(1000),
       getAiSimulationMode: jest.fn().mockReturnValue('RandomRollout'),
       getAiExpansionStrategy: jest.fn().mockReturnValue('Random'),
-      getAiProximityScoreMax: jest.fn().mockReturnValue(2)
+      getAiProximityScoreMax: jest.fn().mockReturnValue(2),
+      getAiProximityScoreMin: jest.fn().mockReturnValue(1)
     } as unknown as jest.Mocked<UIManager>;
 
     aiPlayerMock = {
@@ -52,6 +53,7 @@ describe('GameController Component', () => {
       setSimulationMode: jest.fn(),
       setExpansionStrategy: jest.fn(),
       setProximityScoreMax: jest.fn(),
+      setProximityScoreMin: jest.fn(),
       calculateBestMove: jest.fn().mockResolvedValue({ x: 0, y: 0 }),
       getStats: jest.fn().mockReturnValue({ totalNodes: 10, calculationTimeMs: 100, bestMoveWinRate: 0.5 })
     };
