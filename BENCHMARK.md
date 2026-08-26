@@ -16,9 +16,8 @@ The `src/benchmark.ts` script sets up isolated games where two AI instances play
 - `ProximityHeuristic`
 - `Hybrid`
 
-**Proximity Score Modes:**
-- `Original`
-- `DistanceDifference`
+**Proximity Score Max:**
+- Configure the maximum proximity score evaluated per empty square.
 
 The script uses Node.js `worker_threads` to run match evaluations in parallel. Every configuration pairs up against every other configuration (including itself) to play a number of total games (default is 100 total games, 50 as Black and 50 as White).
 
@@ -32,13 +31,13 @@ You can run the benchmarks using the following npm command:
 npm run benchmark
 ```
 
-You can optionally configure the proximity score mode and the number of games per side using command line arguments:
+You can optionally configure the proximity score max and the number of games per side using command line arguments:
 
 ```bash
-npm run benchmark ProximityScore=DistanceDifference GamesPerPair=10
+npm run benchmark ProximityScoreMax=5 GamesPerPair=10
 ```
 
-- `ProximityScore`: Can be set to `Original` or `DistanceDifference` (defaults to `Original`).
+- `ProximityScoreMax`: Configures the maximum score an empty square can contribute when calculating proximity (defaults to `2`).
 - `GamesPerPair`: The number of games each configuration plays as Black (and as White). Defaults to `50` (meaning 100 total matches per pair).
 
 *Note: With 6 baseline configurations, there are 21 pairs (including self-play). With default settings (50 games per pair), in total, 2100 games will be simulated, taking a considerable amount of time depending on your CPU capabilities.*

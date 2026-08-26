@@ -13,7 +13,7 @@ export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 1000;
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'RandomRollout';
   private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Random';
-  private proximityScoreMode: 'Original' | 'DistanceDifference' = 'Original';
+  private proximityScoreMax: number = 2; // Original logic had an effective max score of 2 per square
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
@@ -76,7 +76,6 @@ export class AiPlayer implements IAiPlayer {
     runBfs(humanQueue, humanDistances, aiPlayerColor);
 
     let score = 0;
-    const PROXIMITY_SCORE_MAX = 5;
 
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
@@ -84,34 +83,19 @@ export class AiPlayer implements IAiPlayer {
           const aiDist = aiDistances[y][x];
           const humanDist = humanDistances[y][x];
 
-          if (this.proximityScoreMode === 'DistanceDifference') {
-             // Handle unreachable distances, which are Infinity
-             let diff = 0;
-             if (aiDist === Infinity && humanDist === Infinity) {
-                diff = 0;
-             } else if (aiDist === Infinity) {
-                diff = -PROXIMITY_SCORE_MAX;
-             } else if (humanDist === Infinity) {
-                diff = PROXIMITY_SCORE_MAX;
-             } else {
-                diff = humanDist - aiDist;
-             }
-
-             score += Math.max(-PROXIMITY_SCORE_MAX, Math.min(PROXIMITY_SCORE_MAX, diff));
+          // Handle unreachable distances, which are Infinity
+          let diff = 0;
+          if (aiDist === Infinity && humanDist === Infinity) {
+             diff = 0;
+          } else if (aiDist === Infinity) {
+             diff = -this.proximityScoreMax;
+          } else if (humanDist === Infinity) {
+             diff = this.proximityScoreMax;
           } else {
-            // Original logic
-            if (aiDist < humanDist) {
-              score++;
-              if (humanDist - aiDist >= 2) {
-                score++;
-              }
-            } else if (humanDist < aiDist) {
-              score--;
-              if (aiDist - humanDist >= 2) {
-                score--;
-              }
-            }
+             diff = humanDist - aiDist;
           }
+
+          score += Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
         }
       }
     }
@@ -131,8 +115,8 @@ export class AiPlayer implements IAiPlayer {
     this.expansionStrategy = strategy;
   }
 
-  setProximityScoreMode(mode: 'Original' | 'DistanceDifference'): void {
-    this.proximityScoreMode = mode;
+  setProximityScoreMax(max: number): void {
+    this.proximityScoreMax = max;
   }
 
   private expand(node: MCTSNode): MCTSNode {
@@ -288,7 +272,7 @@ export class AiPlayer implements IAiPlayer {
       // Count empty squares for accurate normalization
       const emptySquares = BOARD_SIZE * BOARD_SIZE - node.gameState.turnNumber + 1;
 
-      const maxScorePerSquare = this.proximityScoreMode === 'DistanceDifference' ? 5 : 2;
+      const maxScorePerSquare = this.proximityScoreMax;
       const normalizedScore = emptySquares === 0 ? 0.5 : Math.max(0, Math.min(1, (rawScore + maxScorePerSquare * emptySquares) / (2 * maxScorePerSquare * emptySquares)));
 
       if (this.simulationMode === 'ProximityHeuristic') {

@@ -8,26 +8,25 @@ import * as os from 'os';
 
 type ExpansionStrategy = 'Random' | 'BestProximity' | 'Pruned';
 type SimulationMode = 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid';
-type ProximityScoreMode = 'Original' | 'DistanceDifference';
 
 interface AiConfig {
     expansionStrategy: ExpansionStrategy;
     simulationMode: SimulationMode;
-    proximityScoreMode: ProximityScoreMode;
+    proximityScoreMax: number;
 }
 
 const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'Pruned'];
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic', 'Hybrid'];
 
-let parsedProximityScore: ProximityScoreMode = 'Original';
+let parsedProximityScoreMax: number = 2;
 let parsedGamesPerPair: number = 50;
 
 // Parse command line arguments
 for (const arg of process.argv) {
-    if (arg.startsWith('ProximityScore=')) {
-        const val = arg.split('=')[1];
-        if (val === 'DistanceDifference' || val === 'Original') {
-            parsedProximityScore = val;
+    if (arg.startsWith('ProximityScoreMax=')) {
+        const val = parseInt(arg.split('=')[1], 10);
+        if (!isNaN(val) && val > 0) {
+            parsedProximityScoreMax = val;
         }
     }
     if (arg.startsWith('GamesPerPair=')) {
@@ -41,7 +40,7 @@ for (const arg of process.argv) {
 const configs: AiConfig[] = [];
 for (const exp of EXPANSION_STRATEGIES) {
     for (const sim of SIMULATION_MODES) {
-        configs.push({ expansionStrategy: exp, simulationMode: sim, proximityScoreMode: parsedProximityScore });
+        configs.push({ expansionStrategy: exp, simulationMode: sim, proximityScoreMax: parsedProximityScoreMax });
     }
 }
 
@@ -53,7 +52,7 @@ interface MatchTask {
 }
 
 function configToString(config: AiConfig): string {
-    return `${config.expansionStrategy}-${config.simulationMode}-${config.proximityScoreMode}`;
+    return `${config.expansionStrategy}-${config.simulationMode}-${config.proximityScoreMax}`;
 }
 
 async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Promise<Player> {
@@ -64,12 +63,12 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
     playerBlack.setThinkTime(1000);
     playerBlack.setExpansionStrategy(configBlack.expansionStrategy);
     playerBlack.setSimulationMode(configBlack.simulationMode);
-    playerBlack.setProximityScoreMode(configBlack.proximityScoreMode);
+    playerBlack.setProximityScoreMax(configBlack.proximityScoreMax);
 
     playerWhite.setThinkTime(1000);
     playerWhite.setExpansionStrategy(configWhite.expansionStrategy);
     playerWhite.setSimulationMode(configWhite.simulationMode);
-    playerWhite.setProximityScoreMode(configWhite.proximityScoreMode);
+    playerWhite.setProximityScoreMax(configWhite.proximityScoreMax);
 
     let currentState = engine.getGameState();
 
