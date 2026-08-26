@@ -236,24 +236,24 @@ describe('AiPlayer Component', () => {
   });
 
   describe('calculateProximityScore (via reflection for testing)', () => {
-    it('calculates 0 when board is empty', () => {
+    it('calculates 0.5 when board is empty', () => {
       const state: GameState = {
         board: emptyBoard,
         currentPlayer: Player.Black,
         turnNumber: 1
       };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.Black);
-      expect(score).toBe(0);
+      expect(score).toBe(0.5);
     });
 
-    it('calculates a score of 0 for a symmetrical move', () => {
+    it('calculates a score of 0.5 for a symmetrical move', () => {
       const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
       board[3][3] = Player.Black;
       board[3][4] = Player.White;
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.Black);
-      expect(score).toBe(0);
+      expect(score).toBe(0.5);
     });
 
     it('calculates score correctly for Black at (2,5) and White at (3,5) with Chebyshev distance', () => {
@@ -263,7 +263,7 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBe(28);
+      expect(score).toBeCloseTo(0.9117647058823529);
     });
 
     it('calculates score correctly for Black at (2,5) and White at (5,5) with Chebyshev distance', () => {
@@ -273,10 +273,10 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBe(31);
+      expect(score).toBeCloseTo(0.7123287671232876);
     });
 
-    it('calculates score correctly for walled out parts -> score 32', () => {
+    it('calculates score correctly for walled out parts', () => {
       const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
       for (let x = 0; x < BOARD_SIZE; x++) {
         board[1][x] = Player.Black;
@@ -285,7 +285,7 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 16 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBe(64);
+      expect(score).toBeCloseTo(0.8333333333333333);
     });
 
     it('calculates score correctly when AI has walled in the opponent in a corner', () => {
@@ -310,8 +310,7 @@ describe('AiPlayer Component', () => {
       // Empty squares = 60.
       // All 60 empty squares are reachable by Black.
       // 0 empty squares are reachable by White (it's walled in).
-      // So score should be exactly 60.
-      expect(score).toBe(120);
+      expect(score).toBe(1);
     });
   });
 });
