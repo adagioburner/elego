@@ -156,7 +156,7 @@ describe('GameController Component', () => {
       controller.handleHumanMoveInput({ x: 4, y: 3 });
 
       expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(
-        "Invalid move! Symmetric moves are not allowed on the first turn for White."
+        "Move (4, 3) is invalid! Symmetric moves are not allowed on the first turn for White."
       );
     });
 
