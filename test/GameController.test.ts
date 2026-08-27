@@ -134,6 +134,32 @@ describe('GameController Component', () => {
       expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(expect.stringContaining('is invalid!'));
     });
 
+    it('shows specific error message for symmetric moves on turn 2', () => {
+      // Need to set humanPlayer to White so that it allows human input
+      controller.startGame(false, 500); // AI plays first (Black), Human is White
+
+      const turn2State = {
+        ...mockState,
+        currentPlayer: Player.White,
+        turnNumber: 2,
+        lastMove: { x: 3, y: 3 }
+      };
+
+      // Before handleHumanMoveInput, the GameController checks getGameState().currentPlayer !== this.humanPlayer
+      engineMock.getGameState.mockReturnValue(turn2State);
+      engineMock.applyMoveToCurrent.mockReturnValue(false);
+
+      // Simulate human input: AI is thinking flag must be false
+      (controller as any).isAiThinking = false;
+
+      // Attempt restricted symmetric move (4,3) - which is (7-3, 3)
+      controller.handleHumanMoveInput({ x: 4, y: 3 });
+
+      expect(displayMock.showInvalidMoveError).toHaveBeenCalledWith(
+        "Invalid move! Symmetric moves are not allowed on the first turn for White."
+      );
+    });
+
     it('handles valid move, updates state, and prompts AI', async () => {
       controller.startGame(true, 500);
       engineMock.applyMoveToCurrent.mockReturnValue(true);

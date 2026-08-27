@@ -38,6 +38,16 @@ export class GameEngine implements IGameEngine {
       for (let y = 0; y < BOARD_SIZE; y++) {
         if (state.board[y][x] === Player.None) {
           if (!isMainPhase) {
+            // Check for symmetric restriction on turn 2
+            if (state.turnNumber === 2 && state.lastMove) {
+              const lx = state.lastMove.x;
+              const ly = state.lastMove.y;
+              if ((x === BOARD_SIZE - 1 - lx && y === ly) ||
+                  (x === lx && y === BOARD_SIZE - 1 - ly) ||
+                  (x === BOARD_SIZE - 1 - lx && y === BOARD_SIZE - 1 - ly)) {
+                continue;
+              }
+            }
             validMoves.push({ x, y });
           } else {
             // Check for adjacency to at least one piece of the current player's color
