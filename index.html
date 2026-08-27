@@ -60,7 +60,7 @@
 
         <div class="form-group">
           <label for="ai-think-time">AI Think Time (ms):</label>
-          <input type="number" id="ai-think-time" name="aiThinkTime" value="1000" min="100" step="100">
+          <input type="number" id="ai-think-time" name="aiThinkTime" value="5000" min="100" step="100">
         </div>
 
         <div class="form-group">
@@ -68,7 +68,7 @@
           <select id="ai-expansion-strategy" name="aiExpansionStrategy">
             <option value="Random">Random</option>
             <option value="BestProximity">Best Proximity</option>
-            <option value="Pruned">Pruned</option>
+            <option value="Pruned" selected>Pruned</option>
           </select>
         </div>
 
@@ -79,14 +79,14 @@
 
         <div class="form-group">
           <label for="ai-proximity-score-min">AI Proximity Score Min:</label>
-          <input type="number" id="ai-proximity-score-min" name="aiProximityScoreMin" value="1" min="0" step="1">
+          <input type="number" id="ai-proximity-score-min" name="aiProximityScoreMin" value="2" min="0" step="1">
         </div>
 
         <div class="form-group">
           <label for="ai-simulation-mode">AI Simulation Mode:</label>
           <select id="ai-simulation-mode" name="aiSimulationMode">
             <option value="RandomRollout">Random Rollout</option>
-            <option value="ProximityHeuristic">Proximity Heuristic</option>
+            <option value="ProximityHeuristic" selected>Proximity Heuristic</option>
             <option value="Hybrid">Hybrid</option>
           </select>
         </div>

@@ -20,7 +20,7 @@ const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'P
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic', 'Hybrid'];
 
 let parsedProximityScoreMax: number = 2;
-let parsedProximityScoreMin: number = 1;
+let parsedProximityScoreMin: number = 2;
 let parsedGamesPerPair: number = 50;
 
 // Parse command line arguments

@@ -103,11 +103,11 @@ export class UIManager {
   }
 
   public getAiThinkTimeMs(): number {
-    return parseInt(this.inputAiThinkTime?.value || '1000', 10);
+    return parseInt(this.inputAiThinkTime?.value || '5000', 10);
   }
 
   public getAiExpansionStrategy(): 'Random' | 'BestProximity' | 'Pruned' {
-    return (this.selectAiExpansionStrategy?.value as 'Random' | 'BestProximity' | 'Pruned') || 'Random';
+    return (this.selectAiExpansionStrategy?.value as 'Random' | 'BestProximity' | 'Pruned') || 'Pruned';
   }
 
   public getAiProximityScoreMax(): number {
@@ -115,11 +115,11 @@ export class UIManager {
   }
 
   public getAiProximityScoreMin(): number {
-    return parseInt(this.inputAiProximityScoreMin?.value || '1', 10);
+    return parseInt(this.inputAiProximityScoreMin?.value || '2', 10);
   }
 
   public getAiSimulationMode(): 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' {
-    return (this.selectAiSimulationMode?.value as 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid') || 'RandomRollout';
+    return (this.selectAiSimulationMode?.value as 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid') || 'ProximityHeuristic';
   }
 
   /**
