@@ -68,13 +68,13 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
     const playerBlack = new AiPlayer();
     const playerWhite = new AiPlayer();
 
-    playerBlack.setThinkTime(5000);
+    playerBlack.setThinkTime(1000);
     playerBlack.setExpansionStrategy(configBlack.expansionStrategy);
     playerBlack.setSimulationMode(configBlack.simulationMode);
     playerBlack.setProximityScoreMax(configBlack.proximityScoreMax);
     playerBlack.setProximityScoreMin(configBlack.proximityScoreMin);
 
-    playerWhite.setThinkTime(5000);
+    playerWhite.setThinkTime(1000);
     playerWhite.setExpansionStrategy(configWhite.expansionStrategy);
     playerWhite.setSimulationMode(configWhite.simulationMode);
     playerWhite.setProximityScoreMax(configWhite.proximityScoreMax);
