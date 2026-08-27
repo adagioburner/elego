@@ -6,7 +6,6 @@ import { UIManager } from '../ui/UIManager';
 import { Move } from '../interfaces/Move';
 import { GameStats } from '../interfaces/GameStats';
 import { Player } from '../interfaces/Player';
-import { BOARD_SIZE } from './GameEngine';
 
 export class GameController implements IGameController {
   private engine: IGameEngine;
@@ -76,14 +75,8 @@ export class GameController implements IGameController {
     if (!isValid) {
       let msg = `Move (${move.x}, ${move.y}) is invalid!`;
 
-      if (state.turnNumber === 2 && state.lastMove) {
-        const lx = state.lastMove.x;
-        const ly = state.lastMove.y;
-        if ((move.x === BOARD_SIZE - 1 - lx && move.y === ly) ||
-            (move.x === lx && move.y === BOARD_SIZE - 1 - ly) ||
-            (move.x === BOARD_SIZE - 1 - lx && move.y === BOARD_SIZE - 1 - ly)) {
-          msg = "Invalid move! Symmetric moves are not allowed on the first turn for White.";
-        }
+      if (state.turnNumber === 2) {
+          msg += "Symmetric moves are not allowed on the first turn for White.";
       }
 
       this.display.showInvalidMoveError(msg);
