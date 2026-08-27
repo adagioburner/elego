@@ -10,11 +10,11 @@ import { BOARD_SIZE, GameEngine } from './GameEngine';
 const PRUNED_EXPANSION_LIMIT = 10;
 
 export class AiPlayer implements IAiPlayer {
-  private thinkTimeMs: number = 1000;
-  private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'RandomRollout';
-  private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Random';
+  private thinkTimeMs: number = 5000;
+  private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'ProximityHeuristic';
+  private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Pruned';
   private proximityScoreMax: number = 2; // Original logic had an effective max score of 2 per square
-  private proximityScoreMin: number = 1;
+  private proximityScoreMin: number = 2;
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;

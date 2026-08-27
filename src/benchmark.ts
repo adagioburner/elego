@@ -20,7 +20,7 @@ const EXPANSION_STRATEGIES: ExpansionStrategy[] = ['Random', 'BestProximity', 'P
 const SIMULATION_MODES: SimulationMode[] = ['RandomRollout', 'ProximityHeuristic', 'Hybrid'];
 
 let parsedProximityScoreMax: number = 2;
-let parsedProximityScoreMin: number = 1;
+let parsedProximityScoreMin: number = 2;
 let parsedGamesPerPair: number = 50;
 
 // Parse command line arguments
@@ -68,13 +68,13 @@ async function playSingleGame(configBlack: AiConfig, configWhite: AiConfig): Pro
     const playerBlack = new AiPlayer();
     const playerWhite = new AiPlayer();
 
-    playerBlack.setThinkTime(1000);
+    playerBlack.setThinkTime(5000);
     playerBlack.setExpansionStrategy(configBlack.expansionStrategy);
     playerBlack.setSimulationMode(configBlack.simulationMode);
     playerBlack.setProximityScoreMax(configBlack.proximityScoreMax);
     playerBlack.setProximityScoreMin(configBlack.proximityScoreMin);
 
-    playerWhite.setThinkTime(1000);
+    playerWhite.setThinkTime(5000);
     playerWhite.setExpansionStrategy(configWhite.expansionStrategy);
     playerWhite.setSimulationMode(configWhite.simulationMode);
     playerWhite.setProximityScoreMax(configWhite.proximityScoreMax);

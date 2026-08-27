@@ -41,11 +41,11 @@ describe('GameController Component', () => {
       addMessage: jest.fn(),
       updateStats: jest.fn(),
       isSoundEnabled: jest.fn().mockReturnValue(true),
-      getAiThinkTimeMs: jest.fn().mockReturnValue(1000),
-      getAiSimulationMode: jest.fn().mockReturnValue('RandomRollout'),
-      getAiExpansionStrategy: jest.fn().mockReturnValue('Random'),
+      getAiThinkTimeMs: jest.fn().mockReturnValue(5000),
+      getAiSimulationMode: jest.fn().mockReturnValue('ProximityHeuristic'),
+      getAiExpansionStrategy: jest.fn().mockReturnValue('Pruned'),
       getAiProximityScoreMax: jest.fn().mockReturnValue(2),
-      getAiProximityScoreMin: jest.fn().mockReturnValue(1)
+      getAiProximityScoreMin: jest.fn().mockReturnValue(2)
     } as unknown as jest.Mocked<UIManager>;
 
     aiPlayerMock = {
