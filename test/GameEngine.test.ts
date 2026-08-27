@@ -39,13 +39,35 @@ describe('GameEngine', () => {
       engine.initializeGame();
 
       engine.applyMoveToCurrent({ x: 3, y: 3 }); // Turn 1
-      engine.applyMoveToCurrent({ x: 4, y: 4 }); // Turn 2
+      engine.applyMoveToCurrent({ x: 0, y: 0 }); // Turn 2 (avoid restricted moves (4,3), (3,4), (4,4))
       engine.applyMoveToCurrent({ x: 3, y: 4 }); // Turn 3
 
       const state = engine.getGameState();
       const validMoves = engine.getValidMoves(state);
 
+      // On turn 4, there are 3 pieces on the board, so 64 - 3 = 61 empty squares.
+      // 64 - (4 - 1) = 61
       expect(validMoves.length).toBe((BOARD_SIZE * BOARD_SIZE) - (state.turnNumber - 1));
+    });
+
+    it('should prohibit symmetric moves on turn 2', () => {
+      engine.initializeGame();
+
+      engine.applyMoveToCurrent({ x: 3, y: 3 }); // Turn 1 (Black)
+
+      const state = engine.getGameState();
+      const validMoves = engine.getValidMoves(state);
+
+      // Total empty is 63. 3 are prohibited. 63 - 3 = 60 valid moves.
+      expect(validMoves.length).toBe(60);
+
+      // The prohibited moves for (3,3) on 8x8 are: (4,3), (3,4), (4,4)
+      expect(validMoves.some(m => m.x === 4 && m.y === 3)).toBe(false);
+      expect(validMoves.some(m => m.x === 3 && m.y === 4)).toBe(false);
+      expect(validMoves.some(m => m.x === 4 && m.y === 4)).toBe(false);
+
+      // Other moves should be valid
+      expect(validMoves.some(m => m.x === 0 && m.y === 0)).toBe(true);
     });
   });
 
@@ -57,14 +79,14 @@ describe('GameEngine', () => {
       // We manually apply moves to reach turn 7
       // Moves 1-6 are unresticted.
       // Move 1 (B): 3,3
-      // Move 2 (W): 4,4
+      // Move 2 (W): 0,0 (avoid restricted symmetric move on turn 2)
       // Move 3 (B): 3,4
       // Move 4 (W): 4,5
       // Move 5 (B): 2,3
       // Move 6 (W): 5,5
 
       engine.applyMoveToCurrent({ x: 3, y: 3 });
-      engine.applyMoveToCurrent({ x: 4, y: 4 });
+      engine.applyMoveToCurrent({ x: 0, y: 0 });
       engine.applyMoveToCurrent({ x: 3, y: 4 });
       engine.applyMoveToCurrent({ x: 4, y: 5 });
       engine.applyMoveToCurrent({ x: 2, y: 3 });
@@ -122,7 +144,7 @@ describe('GameEngine', () => {
 
       // 6 moves
       engine.applyMoveToCurrent({ x: 3, y: 3 }); // B
-      engine.applyMoveToCurrent({ x: 4, y: 4 }); // W
+      engine.applyMoveToCurrent({ x: 0, y: 0 }); // W (avoid symmetric restriction on turn 2)
       engine.applyMoveToCurrent({ x: 3, y: 4 }); // B
       engine.applyMoveToCurrent({ x: 4, y: 5 }); // W
       engine.applyMoveToCurrent({ x: 2, y: 3 }); // B
