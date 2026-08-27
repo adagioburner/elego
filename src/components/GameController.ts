@@ -76,7 +76,7 @@ export class GameController implements IGameController {
       let msg = `Move (${move.x}, ${move.y}) is invalid!`;
 
       if (state.turnNumber === 2) {
-          msg += "Symmetric moves are not allowed on the first turn for White.";
+          msg += " Symmetric moves are not allowed on the first turn for White.";
       }
 
       this.display.showInvalidMoveError(msg);
