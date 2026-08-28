@@ -253,7 +253,7 @@ details .form-group {
   justify-content: flex-end;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .app-container {
     height: auto;
     min-height: 100vh;
