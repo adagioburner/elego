@@ -103,7 +103,7 @@ export class UIManager {
   }
 
   public getAiThinkTimeMs(): number {
-    return parseInt(this.inputAiThinkTime?.value || '5000', 10);
+    return parseInt(this.inputAiThinkTime?.value || '3000', 10);
   }
 
   public getAiExpansionStrategy(): 'Random' | 'BestProximity' | 'Pruned' {
@@ -119,7 +119,7 @@ export class UIManager {
   }
 
   public getAiSimulationMode(): 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' {
-    return (this.selectAiSimulationMode?.value as 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid') || 'ProximityHeuristic';
+    return (this.selectAiSimulationMode?.value as 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid') || 'Hybrid';
   }
 
   /**
