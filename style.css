@@ -252,3 +252,38 @@ details .form-group {
   display: flex;
   justify-content: flex-end;
 }
+
+@media (max-width: 768px) {
+  .app-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .main-content {
+    flex-wrap: wrap;
+  }
+
+  .left-panel, .right-panel {
+    display: contents;
+  }
+
+  #start-controls {
+    order: 1;
+    flex: 0 0 100%;
+  }
+
+  .board-section {
+    order: 2;
+    flex: 0 0 100%;
+  }
+
+  #game-messages {
+    order: 3;
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  #game-stats {
+    order: 4;
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+}
