@@ -222,7 +222,7 @@ if (!isMainThread) {
         const pendingMatches: PendingMatch[] = [];
 
         for (let i = 0; i < configs.length; i++) {
-            for (let j = i; j < configs.length; j++) {
+            for (let j = i + 1; j < configs.length; j++) {
                 const configA = configs[i]!;
                 const configB = configs[j]!;
 
