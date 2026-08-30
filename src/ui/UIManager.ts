@@ -11,6 +11,8 @@ export class UIManager {
   public btnPlaySecond: HTMLButtonElement | null;
   public btnOptions: HTMLButtonElement | null;
 
+  public initialWelcomeMessage: string = '';
+
   // Dialog & Form
   public optionsDialog: HTMLDialogElement | null;
   public inputAiThinkTime: HTMLInputElement | null;
@@ -33,6 +35,10 @@ export class UIManager {
     this.gameMessagesPanel = document.getElementById('game-messages');
     this.messageList = document.getElementById('message-list');
     this.gameStatsPanel = document.getElementById('game-stats');
+
+    if (this.messageList) {
+      this.initialWelcomeMessage = this.messageList.innerHTML;
+    }
 
     this.btnPlayFirst = document.getElementById('btn-play-first') as HTMLButtonElement;
     this.btnPlaySecond = document.getElementById('btn-play-second') as HTMLButtonElement;
@@ -94,7 +100,7 @@ export class UIManager {
    */
   public clearMessages(): void {
     if (this.messageList) {
-      this.messageList.innerHTML = '';
+      this.messageList.innerHTML = this.initialWelcomeMessage;
     }
   }
 
