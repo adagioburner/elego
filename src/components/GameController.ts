@@ -34,7 +34,7 @@ export class GameController implements IGameController {
     }
 
     this.engine.initializeGame();
-    this.uiManager.clearMessages();
+    // Do not clear the welcome message so that the rules stay visible
     this.uiManager.addMessage('Game Started');
     this.isGameOver = false;
     this.isAiThinking = false;
