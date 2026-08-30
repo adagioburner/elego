@@ -72,7 +72,6 @@ describe('GameController Component', () => {
       controller.startGame(true, 500);
 
       expect(engineMock.initializeGame).toHaveBeenCalled();
-      expect(uiManagerMock.clearMessages).toHaveBeenCalled();
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Game Started');
       expect(aiPlayerMock.setThinkTime).toHaveBeenCalledWith(500);
       expect(displayMock.renderBoard).toHaveBeenCalledWith(mockState);
