@@ -177,6 +177,18 @@ button:hover {
   border-bottom: none;
 }
 
+.rules-list {
+  list-style-type: disc;
+  margin-left: 20px;
+  margin-top: 5px;
+}
+
+.rules-list li {
+  border-bottom: none !important;
+  margin-bottom: 0.25rem !important;
+  padding-bottom: 0 !important;
+}
+
 .stat-item {
   display: flex;
   justify-content: space-between;
