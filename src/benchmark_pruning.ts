@@ -17,7 +17,7 @@ interface AiConfig {
     pruningLimit: number;
 }
 
-const PRUNING_LIMITS: number[] = [5, 8, 10, 12, 15, 20];
+let PRUNING_LIMITS: number[] = [5, 8, 10, 12, 15, 20];
 
 let parsedProximityScoreMax: number = 2;
 let parsedProximityScoreMin: number = 2;
@@ -25,6 +25,15 @@ let parsedGamesPerPair: number = 50;
 
 // Parse command line arguments
 for (const arg of process.argv) {
+    if (arg.startsWith('PruningLimits=')) {
+        const limitsStr = arg.split('=')[1];
+        if (limitsStr) {
+            const limits = limitsStr.split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n) && n > 0);
+            if (limits.length > 0) {
+                PRUNING_LIMITS = limits;
+            }
+        }
+    }
     if (arg.startsWith('ProximityScoreMax=')) {
         const val = parseInt(arg.split('=')[1], 10);
         if (!isNaN(val) && val > 0) {
