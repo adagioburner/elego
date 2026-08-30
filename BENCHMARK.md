@@ -42,6 +42,25 @@ npm run benchmark ProximityScoreMax=5 GamesPerPair=10
 
 *Note: With 6 baseline configurations, there are 21 pairs (including self-play). With default settings (50 games per pair), in total, 2100 games will be simulated, taking a considerable amount of time depending on your CPU capabilities.*
 
+## Pruning Benchmarks
+
+There is also a dedicated script for evaluating different MCTS pruning limits for the `Pruned` expansion strategy.
+
+You can run this benchmark using:
+
+```bash
+npm run benchmark-pruning
+```
+
+You can optionally configure the pruning limits to evaluate by passing a comma-separated list to the `PruningLimits` parameter. This allows targeted comparison between specific pruning limits.
+
+```bash
+npm run benchmark-pruning PruningLimits=8,10 GamesPerPair=500
+```
+
+- `PruningLimits`: A comma-separated list of integer pruning limits to evaluate (defaults to `5,8,10,12,15,20`).
+- `GamesPerPair` and `ProximityScoreMax` can also be used here as described above.
+
 ## Output
 
 The benchmark script prints its progress directly to the console. Once matches complete, the final tally is appended incrementally to a `benchmark_results.csv` file created in the root directory.
