@@ -8,6 +8,7 @@ export interface IAiPlayer {
   setExpansionStrategy(strategy: 'Random' | 'BestProximity' | 'Pruned'): void;
   setProximityScoreMax(max: number): void;
   setProximityScoreMin(min: number): void;
+  setPruningLimit(limit: number): void;
   calculateBestMove(currentState: GameState): Promise<Move>;
   getStats(): AiStats; // Returns nodes searched, time taken, etc.
 }

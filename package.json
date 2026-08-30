@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "webpack --mode production",
-    "benchmark": "ts-node --transpile-only src/benchmark.ts"
+    "benchmark": "ts-node --transpile-only src/benchmark.ts",
+    "benchmark-pruning": "ts-node --transpile-only src/benchmark_pruning.ts"
   },
   "repository": {
     "type": "git",

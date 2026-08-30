@@ -7,14 +7,13 @@ import { MCTSNode } from '../interfaces/MCTSNode';
 import { Position } from '../interfaces/Position';
 import { BOARD_SIZE, GameEngine } from './GameEngine';
 
-const PRUNED_EXPANSION_LIMIT = 10;
-
 export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 5000;
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'ProximityHeuristic';
   private expansionStrategy: 'Random' | 'BestProximity' | 'Pruned' = 'Pruned';
   private proximityScoreMax: number = 2; // Original logic had an effective max score of 2 per square
   private proximityScoreMin: number = 2;
+  private prunedExpansionLimit: number = 10;
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
@@ -134,6 +133,10 @@ export class AiPlayer implements IAiPlayer {
     this.proximityScoreMin = min;
   }
 
+  setPruningLimit(limit: number): void {
+    this.prunedExpansionLimit = limit;
+  }
+
   private expand(node: MCTSNode): MCTSNode {
     if (node.untriedMoves.length === 0) {
       return node; // Cannot expand further
@@ -156,8 +159,8 @@ export class AiPlayer implements IAiPlayer {
         return scoreB - scoreA;
       });
 
-      if (this.expansionStrategy === 'Pruned' && node.untriedMoves.length > PRUNED_EXPANSION_LIMIT) {
-        const thresholdScore = node.untriedMoves[PRUNED_EXPANSION_LIMIT - 1]?.score;
+      if (this.expansionStrategy === 'Pruned' && node.untriedMoves.length > this.prunedExpansionLimit) {
+        const thresholdScore = node.untriedMoves[this.prunedExpansionLimit - 1]?.score;
         if (thresholdScore !== undefined) {
           let firstIndexOfThreshold = -1;
           let lastIndexOfThreshold = -1;
@@ -173,7 +176,7 @@ export class AiPlayer implements IAiPlayer {
             }
           }
 
-          const movesNeededFromThreshold = PRUNED_EXPANSION_LIMIT - firstIndexOfThreshold;
+          const movesNeededFromThreshold = this.prunedExpansionLimit - firstIndexOfThreshold;
           const thresholdMovesAvailable = lastIndexOfThreshold - firstIndexOfThreshold + 1;
 
           if (movesNeededFromThreshold < thresholdMovesAvailable) {
@@ -185,7 +188,7 @@ export class AiPlayer implements IAiPlayer {
               [ties[i], ties[j]] = [ties[j], ties[i]];
             }
 
-            // Re-insert the chosen ties back into the array up to PRUNED_EXPANSION_LIMIT
+            // Re-insert the chosen ties back into the array up to this.prunedExpansionLimit
             node.untriedMoves.splice(
               firstIndexOfThreshold,
               ties.length,
@@ -195,7 +198,7 @@ export class AiPlayer implements IAiPlayer {
         }
 
         // Truncate to the limit
-        node.untriedMoves.length = Math.min(node.untriedMoves.length, PRUNED_EXPANSION_LIMIT);
+        node.untriedMoves.length = Math.min(node.untriedMoves.length, this.prunedExpansionLimit);
       }
 
       node.untriedMovesEvaluated = true;
