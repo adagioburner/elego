@@ -125,6 +125,21 @@ describe('GameController Component', () => {
       expect(engineMock.applyMoveToCurrent).not.toHaveBeenCalled();
     });
 
+    it('ignores input if it is not the human player\'s turn', () => {
+      controller.startGame(true, 500); // Human is Black
+
+      // Change game state to pretend it is White's turn
+      const notHumanTurnState = {
+        ...mockState,
+        currentPlayer: Player.White
+      };
+      engineMock.getGameState.mockReturnValueOnce(notHumanTurnState);
+
+      controller.handleHumanMoveInput({ x: 0, y: 0 });
+
+      expect(engineMock.applyMoveToCurrent).not.toHaveBeenCalled();
+    });
+
     it('handles invalid move properly', () => {
       controller.startGame(true, 500);
       engineMock.applyMoveToCurrent.mockReturnValue(false);
@@ -192,6 +207,15 @@ describe('GameController Component', () => {
   });
 
   describe('promptAiMove', () => {
+    it('does nothing if the game is already over', async () => {
+      // Set the game to over state
+      (controller as any).isGameOver = true;
+      await controller.promptAiMove();
+
+      expect(uiManagerMock.addMessage).not.toHaveBeenCalledWith('AI is thinking...');
+      expect(aiPlayerMock.calculateBestMove).not.toHaveBeenCalled();
+    });
+
     it('triggers AI calculation, applies move, updates UI, and ends turn', async () => {
       controller.startGame(true, 500);
       jest.clearAllMocks();
@@ -209,6 +233,17 @@ describe('GameController Component', () => {
       expect(uiManagerMock.updateStats).toHaveBeenCalledWith(10, 100, 0.5);
     });
 
+    it('handles AI stats missing edge case', async () => {
+      controller.startGame(true, 500);
+      jest.clearAllMocks();
+
+      aiPlayerMock.getStats.mockReturnValueOnce(undefined as any);
+
+      await controller.promptAiMove();
+
+      expect(uiManagerMock.updateStats).not.toHaveBeenCalled();
+    });
+
     it('announces winner if AI move ends game', async () => {
       controller.startGame(true, 500);
 
@@ -219,6 +254,31 @@ describe('GameController Component', () => {
       await controller.promptAiMove();
 
       expect(uiManagerMock.addMessage).toHaveBeenCalledWith('Game Over! White wins!');
+    });
+  });
+
+  describe('updateStats', () => {
+    it('passes stats to UIManager', () => {
+      controller.updateStats({ nodesSearched: 15, timeElapsedMs: 250, aiWinProbability: 0.8 });
+      expect(uiManagerMock.updateStats).toHaveBeenCalledWith(15, 250, 0.8);
+    });
+  });
+
+  describe('toggleStatsPanel', () => {
+    it('shows and hides stats panel through uiManager', () => {
+      const classListMock = { remove: jest.fn(), add: jest.fn() };
+      uiManagerMock.gameStatsPanel = { classList: classListMock } as unknown as HTMLElement;
+
+      controller.toggleStatsPanel(true);
+      expect(classListMock.remove).toHaveBeenCalledWith('hidden');
+
+      controller.toggleStatsPanel(false);
+      expect(classListMock.add).toHaveBeenCalledWith('hidden');
+    });
+
+    it('does nothing if gameStatsPanel is not initialized in uiManager', () => {
+      uiManagerMock.gameStatsPanel = null;
+      expect(() => controller.toggleStatsPanel(true)).not.toThrow();
     });
   });
 });

@@ -197,6 +197,23 @@ describe('GameEngine', () => {
       expect(result).toBe(Player.White);
     });
 
+    it('should assign loss correctly if current player is White and has no moves', () => {
+      const mockBoard: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.Black));
+      mockBoard[3][3] = Player.White;
+      mockBoard[0][0] = Player.None; // Make one empty spot far away for Black
+
+      const mockState = {
+        board: mockBoard,
+        currentPlayer: Player.White,
+        turnNumber: 7
+      };
+
+      const result = engine.checkWinner(mockState);
+
+      // White has no valid moves, so Black wins
+      expect(result).toBe(Player.Black);
+    });
+
     it('should return Ongoing if valid moves exist', () => {
       engine.initializeGame();
       const state = engine.getGameState();
