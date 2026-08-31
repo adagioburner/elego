@@ -14,6 +14,154 @@ describe('AiPlayer Component', () => {
     emptyBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
   });
 
+  describe('calculateBestMove Edge Cases', () => {
+    it('returns a fallback move if it times out before expanding any children', async () => {
+      aiPlayer.setThinkTime(0); // extremely short time to force timeout
+      const initialState: GameState = {
+        board: emptyBoard,
+        currentPlayer: Player.Black,
+        turnNumber: 1
+      };
+
+      const move = await aiPlayer.calculateBestMove(initialState);
+      expect(move).toBeDefined(); // Returns the first valid untried move
+    });
+
+    it('rejects if no valid moves are available', async () => {
+      const fullBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const state: GameState = {
+        board: fullBoard,
+        currentPlayer: Player.Black,
+        turnNumber: 15
+      };
+
+      await expect(aiPlayer.calculateBestMove(state)).rejects.toThrow("No valid moves available.");
+    });
+  });
+
+  describe('Simulation and Rollout Edge Cases', () => {
+    it('detects early win/loss in simulation when a terminal state is reached', () => {
+      aiPlayer.setSimulationMode('ProximityHeuristic');
+      (aiPlayer as any).aiPlayerColor = Player.Black;
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const terminalState: GameState = {
+        board,
+        currentPlayer: Player.White, // White has no moves, Black wins
+        turnNumber: 15
+      };
+
+      const simulateMethod = (aiPlayer as any).simulate.bind(aiPlayer);
+      const score = simulateMethod({ gameState: terminalState });
+      expect(score).toBe(1); // AI (Black) wins
+    });
+
+    it('detects early loss in simulation when AI loses', () => {
+      aiPlayer.setSimulationMode('ProximityHeuristic');
+      (aiPlayer as any).aiPlayerColor = Player.White;
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const terminalState: GameState = {
+        board,
+        currentPlayer: Player.White, // White has no moves, Black wins
+        turnNumber: 15
+      };
+
+      const simulateMethod = (aiPlayer as any).simulate.bind(aiPlayer);
+      const score = simulateMethod({ gameState: terminalState });
+      expect(score).toBe(0); // AI (White) loses
+    });
+
+    it('detects early draw in simulation when winner is None', () => {
+      aiPlayer.setSimulationMode('ProximityHeuristic');
+      (aiPlayer as any).aiPlayerColor = Player.Black;
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const terminalState: GameState = {
+        board,
+        currentPlayer: Player.White,
+        turnNumber: 15
+      };
+
+      // We must mock GameEngine checkWinner to return Player.None (Draw)
+      const engine = (aiPlayer as any).gameEngine;
+      const checkWinnerSpy = jest.spyOn(engine, 'checkWinner').mockReturnValue(Player.None);
+
+      const simulateMethod = (aiPlayer as any).simulate.bind(aiPlayer);
+      const score = simulateMethod({ gameState: terminalState });
+
+      expect(score).toBe(0.5); // Draw
+      checkWinnerSpy.mockRestore();
+    });
+
+    it('returns score for AI win during random rollout', () => {
+      (aiPlayer as any).aiPlayerColor = Player.Black;
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const terminalState: GameState = {
+        board,
+        currentPlayer: Player.White, // White has no moves, Black wins
+        turnNumber: 15
+      };
+
+      const runRandomRolloutMethod = (aiPlayer as any).runRandomRollout.bind(aiPlayer);
+      const score = runRandomRolloutMethod(terminalState);
+      expect(score).toBe(1); // AI (Black) won
+    });
+
+    it('returns score for AI loss during random rollout', () => {
+      (aiPlayer as any).aiPlayerColor = Player.White;
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const terminalState: GameState = {
+        board,
+        currentPlayer: Player.White, // White has no moves, Black wins
+        turnNumber: 15
+      };
+
+      const runRandomRolloutMethod = (aiPlayer as any).runRandomRollout.bind(aiPlayer);
+      const score = runRandomRolloutMethod(terminalState);
+      expect(score).toBe(0); // AI (White) lost
+    });
+
+    it('runs random rollout as part of Hybrid simulation mode', () => {
+      aiPlayer.setSimulationMode('Hybrid');
+      (aiPlayer as any).aiPlayerColor = Player.Black;
+
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+      // Give white 1 piece to not be terminal immediately but end fast
+      board[0][0] = Player.White;
+
+      const state: GameState = {
+        board,
+        currentPlayer: Player.Black,
+        turnNumber: 1
+      };
+
+      const runRandomRolloutSpy = jest.spyOn(aiPlayer as any, 'runRandomRollout').mockReturnValue(1);
+      const calculateProximityScoreSpy = jest.spyOn(aiPlayer as any, 'calculateProximityScore').mockReturnValue(0.5);
+
+      const simulateMethod = (aiPlayer as any).simulate.bind(aiPlayer);
+      const score = simulateMethod({ gameState: state });
+
+      // Hybrid averages proximity score (0.5) and rollout score (1) = 0.75
+      expect(score).toBe(0.75);
+
+      runRandomRolloutSpy.mockRestore();
+      calculateProximityScoreSpy.mockRestore();
+    });
+
+    it('runs RandomRollout simulation mode', () => {
+      aiPlayer.setSimulationMode('RandomRollout');
+      (aiPlayer as any).aiPlayerColor = Player.Black;
+      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const terminalState: GameState = {
+        board,
+        currentPlayer: Player.White, // White has no moves, Black wins
+        turnNumber: 15
+      };
+
+      const simulateMethod = (aiPlayer as any).simulate.bind(aiPlayer);
+      const score = simulateMethod({ gameState: terminalState });
+      expect(score).toBe(1); // AI (Black) wins via rollout
+    });
+  });
+
   describe('calculateBestMove (MCTS)', () => {
     it('returns a valid move within the think time', async () => {
       const initialState: GameState = {
@@ -232,6 +380,48 @@ describe('AiPlayer Component', () => {
 
       const move = await aiPlayer.calculateBestMove(initialState);
       expect(move).toBeDefined();
+    });
+
+    it('returns a valid move with Random expansion strategy', async () => {
+      aiPlayer.setExpansionStrategy('Random');
+      const initialState: GameState = {
+        board: emptyBoard,
+        currentPlayer: Player.Black,
+        turnNumber: 1
+      };
+
+      const move = await aiPlayer.calculateBestMove(initialState);
+      expect(move).toBeDefined();
+    });
+
+    it('breaks ties randomly in BestProximity strategy', () => {
+      aiPlayer.setExpansionStrategy('BestProximity');
+
+      const node = {
+        gameState: {
+          board: emptyBoard,
+          currentPlayer: Player.Black,
+          turnNumber: 1
+        },
+        parent: null,
+        children: [],
+        moveFromParent: null,
+        visits: 0,
+        wins: 0,
+        untriedMoves: [
+          { move: { x: 0, y: 0 }, score: 10 },
+          { move: { x: 1, y: 0 }, score: 10 },
+          { move: { x: 2, y: 0 }, score: 5 }
+        ],
+        untriedMovesEvaluated: true // Mock that they are already evaluated and sorted
+      };
+
+      const mathRandomSpy = jest.spyOn(Math, 'random').mockReturnValue(0.9); // Pick the last element of the best indices
+      const expandMethod = (aiPlayer as any).expand.bind(aiPlayer);
+      const childNode = expandMethod(node);
+
+      expect(childNode.moveFromParent).toEqual({ x: 1, y: 0 }); // Since random is 0.9, it picks index 1 from bestIndices [0, 1]
+      mathRandomSpy.mockRestore();
     });
   });
 
