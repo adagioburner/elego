@@ -26,17 +26,24 @@ class DistanceMap {
 }
 
 class Queue {
-  private data: Int32Array;
+  private xData: Int32Array;
+  private yData: Int32Array;
   private head: number = 0;
   private tail: number = 0;
   constructor(capacity: number) {
-    this.data = new Int32Array(capacity);
+    this.xData = new Int32Array(capacity);
+    this.yData = new Int32Array(capacity);
   }
-  push(val: number): void {
-    this.data[this.tail++] = val;
+  push(x: number, y: number): void {
+    this.xData[this.tail] = x;
+    this.yData[this.tail] = y;
+    this.tail++;
   }
-  pop(): number {
-    return this.data[this.head++];
+  popX(): number {
+    return this.xData[this.head];
+  }
+  popY(): number {
+    return this.yData[this.head++];
   }
   get length(): number {
     return this.tail - this.head;
@@ -76,10 +83,10 @@ export class AiPlayer implements IAiPlayer {
       for (let x = 0; x < BOARD_SIZE; x++) {
         const piece = state.board[y][x];
         if (piece === aiPlayerColor) {
-          this.aiQueue.push(y * BOARD_SIZE + x);
+          this.aiQueue.push(x, y);
           this.aiDistances.set(x, y, 0);
         } else if (piece === humanPlayerColor) {
-          this.humanQueue.push(y * BOARD_SIZE + x);
+          this.humanQueue.push(x, y);
           this.humanDistances.set(x, y, 0);
         }
       }
@@ -88,9 +95,8 @@ export class AiPlayer implements IAiPlayer {
     // Helper for BFS
     const runBfs = (queue: Queue, distances: DistanceMap, opponentColor: Player) => {
       while (queue.length > 0) {
-        const packed = queue.pop();
-        const x = packed % BOARD_SIZE;
-        const y = (packed - x) / BOARD_SIZE;
+        const x = queue.popX();
+        const y = queue.popY();
         const currentDist = distances.get(x, y);
 
         for (let dy = -1; dy <= 1; dy++) {
@@ -105,7 +111,7 @@ export class AiPlayer implements IAiPlayer {
                 // If it's empty (or our own piece, though that would already have dist 0), check distance
                 if (distances.get(nx, ny) > currentDist + 1) {
                   distances.set(nx, ny, currentDist + 1);
-                  queue.push(ny * BOARD_SIZE + nx);
+                  queue.push(nx, ny);
                 }
               }
             }
