@@ -37,8 +37,8 @@ async function runBenchmark() {
   const nodesPerSecond = Math.round(stats.totalNodes / ((end - start) / 1000));
   console.log(`Nodes per second: ${nodesPerSecond}`);
 
-  // Assert minimum expected performance. The baseline was ~5500. We assert slightly lower to prevent flaky test failures on busy CI runners.
-  const THRESHOLD = 4500;
+  // Assert minimum expected performance. The baseline was ~10000 (after game board optimization). We assert slightly lower to prevent flaky test failures on busy CI runners.
+  const THRESHOLD = 7000;
   if (nodesPerSecond < THRESHOLD) {
       console.error(`Performance degraded! Nodes per second (${nodesPerSecond}) is below the threshold of ${THRESHOLD}`);
       process.exit(1);

@@ -1,5 +1,6 @@
 import { AiPlayer } from '../src/components/AiPlayer';
 import { GameState } from '../src/interfaces/GameState';
+import { GameBoard } from '../src/components/GameBoard';
 import { Player } from '../src/interfaces/Player';
 import { BOARD_SIZE } from '../src/components/GameEngine';
 
@@ -11,7 +12,7 @@ describe('AiPlayer Component', () => {
     aiPlayer = new AiPlayer();
     aiPlayer.setThinkTime(50); // Set small think time for fast tests
 
-    emptyBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+    emptyBoard = new GameBoard();
   });
 
   describe('calculateBestMove Edge Cases', () => {
@@ -28,7 +29,7 @@ describe('AiPlayer Component', () => {
     });
 
     it('rejects if no valid moves are available', async () => {
-      const fullBoard = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const fullBoard = new GameBoard();
       const state: GameState = {
         board: fullBoard,
         currentPlayer: Player.Black,
@@ -43,7 +44,7 @@ describe('AiPlayer Component', () => {
     it('detects early win/loss in simulation when a terminal state is reached', () => {
       aiPlayer.setSimulationMode('ProximityHeuristic');
       (aiPlayer as any).aiPlayerColor = Player.Black;
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const board = new GameBoard();
       const terminalState: GameState = {
         board,
         currentPlayer: Player.White, // White has no moves, Black wins
@@ -58,7 +59,7 @@ describe('AiPlayer Component', () => {
     it('detects early loss in simulation when AI loses', () => {
       aiPlayer.setSimulationMode('ProximityHeuristic');
       (aiPlayer as any).aiPlayerColor = Player.White;
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const board = new GameBoard();
       const terminalState: GameState = {
         board,
         currentPlayer: Player.White, // White has no moves, Black wins
@@ -73,7 +74,7 @@ describe('AiPlayer Component', () => {
     it('detects early draw in simulation when winner is None', () => {
       aiPlayer.setSimulationMode('ProximityHeuristic');
       (aiPlayer as any).aiPlayerColor = Player.Black;
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const board = new GameBoard();
       const terminalState: GameState = {
         board,
         currentPlayer: Player.White,
@@ -93,7 +94,7 @@ describe('AiPlayer Component', () => {
 
     it('returns score for AI win during random rollout', () => {
       (aiPlayer as any).aiPlayerColor = Player.Black;
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const board = new GameBoard();
       const terminalState: GameState = {
         board,
         currentPlayer: Player.White, // White has no moves, Black wins
@@ -107,7 +108,7 @@ describe('AiPlayer Component', () => {
 
     it('returns score for AI loss during random rollout', () => {
       (aiPlayer as any).aiPlayerColor = Player.White;
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const board = new GameBoard();
       const terminalState: GameState = {
         board,
         currentPlayer: Player.White, // White has no moves, Black wins
@@ -123,9 +124,9 @@ describe('AiPlayer Component', () => {
       aiPlayer.setSimulationMode('Hybrid');
       (aiPlayer as any).aiPlayerColor = Player.Black;
 
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+      const board = new GameBoard();
       // Give white 1 piece to not be terminal immediately but end fast
-      board[0][0] = Player.White;
+      board.set(0, 0, Player.White);
 
       const state: GameState = {
         board,
@@ -149,7 +150,7 @@ describe('AiPlayer Component', () => {
     it('runs RandomRollout simulation mode', () => {
       aiPlayer.setSimulationMode('RandomRollout');
       (aiPlayer as any).aiPlayerColor = Player.Black;
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
+      const board = new GameBoard();
       const terminalState: GameState = {
         board,
         currentPlayer: Player.White, // White has no moves, Black wins
@@ -330,8 +331,8 @@ describe('AiPlayer Component', () => {
 
   describe('available moves (MCTS state generation)', () => {
     it('returns 8 available moves if there is only one black piece (turn > 6)', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[4][4] = Player.Black;
+      const board = new GameBoard();
+      board.set(4, 4, Player.Black);
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 7 };
       const engine = (aiPlayer as any).gameEngine;
       const validMoves = engine.getValidMoves(state);
@@ -339,9 +340,9 @@ describe('AiPlayer Component', () => {
     });
 
     it('returns 10 available moves if there are two pieces adjacent by side', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[4][4] = Player.Black;
-      board[4][5] = Player.Black;
+      const board = new GameBoard();
+      board.set(4, 4, Player.Black);
+      board.set(5, 4, Player.Black);
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 7 };
       const engine = (aiPlayer as any).gameEngine;
       const validMoves = engine.getValidMoves(state);
@@ -349,9 +350,9 @@ describe('AiPlayer Component', () => {
     });
 
     it('returns 12 available moves if there are two pieces adjacent diagonally', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[4][4] = Player.Black;
-      board[5][5] = Player.Black;
+      const board = new GameBoard();
+      board.set(4, 4, Player.Black);
+      board.set(5, 5, Player.Black);
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 7 };
       const engine = (aiPlayer as any).gameEngine;
       const validMoves = engine.getValidMoves(state);
@@ -359,9 +360,9 @@ describe('AiPlayer Component', () => {
     });
 
     it('returns 7 available moves if there are two pieces of different color next to each other by side', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[4][4] = Player.Black;
-      board[4][5] = Player.White;
+      const board = new GameBoard();
+      board.set(4, 4, Player.Black);
+      board.set(5, 4, Player.White);
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 7 };
       const engine = (aiPlayer as any).gameEngine;
       const validMoves = engine.getValidMoves(state);
@@ -437,9 +438,9 @@ describe('AiPlayer Component', () => {
     });
 
     it('calculates a score of 0.5 for a symmetrical move', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[3][3] = Player.Black;
-      board[3][4] = Player.White;
+      const board = new GameBoard();
+      board.set(3, 3, Player.Black);
+      board.set(4, 3, Player.White);
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.Black);
@@ -447,9 +448,9 @@ describe('AiPlayer Component', () => {
     });
 
     it('calculates score correctly for Black at (0,0) and White at (1,7) with Chebyshev distance', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[0][0] = Player.Black;
-      board[1][7] = Player.White;
+      const board = new GameBoard();
+      board.set(0, 0, Player.Black);
+      board.set(7, 1, Player.White);
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
@@ -457,9 +458,9 @@ describe('AiPlayer Component', () => {
     });
 
     it('calculates score correctly for Black at (2,5) and White at (5,5) with Chebyshev distance', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
-      board[4][1] = Player.Black;
-      board[4][4] = Player.White;
+      const board = new GameBoard();
+      board.set(1, 4, Player.Black);
+      board.set(4, 4, Player.White);
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
@@ -467,10 +468,10 @@ describe('AiPlayer Component', () => {
     });
 
     it('calculates score correctly for walled out parts', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+      const board = new GameBoard();
       for (let x = 0; x < BOARD_SIZE; x++) {
-        board[1][x] = Player.Black;
-        board[2][x] = Player.White;
+        board.set(x, 1, Player.Black);
+        board.set(x, 2, Player.White);
       }
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 16 };
@@ -479,15 +480,15 @@ describe('AiPlayer Component', () => {
     });
 
     it('calculates score correctly when AI has walled in the opponent in a corner', () => {
-      const board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+      const board = new GameBoard();
       // Black in center
-      board[1][1] = Player.Black;
+      board.set(1, 1, Player.Black);
       // Human trapped in top left corner (0,0)
-      board[0][0] = Player.White;
+      board.set(0, 0, Player.White);
 
       // Black walls White in completely at (0,1) and (1,0) and (1,1)
-      board[0][1] = Player.Black;
-      board[1][0] = Player.Black;
+      board.set(1, 0, Player.Black);
+      board.set(0, 1, Player.Black);
 
       const state: GameState = {
         board: board,

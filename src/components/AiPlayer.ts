@@ -5,7 +5,8 @@ import { AiStats } from '../interfaces/AiStats';
 import { Player } from '../interfaces/Player';
 import { MCTSNode } from '../interfaces/MCTSNode';
 import { Position } from '../interfaces/Position';
-import { BOARD_SIZE, GameEngine } from './GameEngine';
+import { GameEngine } from './GameEngine';
+import { BOARD_SIZE } from './GameBoard';
 
 const INFINITY = 999999;
 
@@ -80,7 +81,7 @@ export class AiPlayer implements IAiPlayer {
     // Find initial pieces
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
-        const piece = state.board[y][x];
+        const piece = state.board.get(x, y);
         if (piece === aiPlayerColor) {
           this.aiQueue.push(x, y);
           this.aiDistances.set(x, y, 0);
@@ -109,7 +110,7 @@ export class AiPlayer implements IAiPlayer {
 
             if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE) {
               // Treat opponent's pieces as walls
-              if (state.board[ny][nx] !== opponentColor) {
+              if (state.board.get(nx, ny) !== opponentColor) {
                 // If it's empty (or our own piece, though that would already have dist 0), check distance
                 if (distances.get(nx, ny) > currentDist + 1) {
                   distances.set(nx, ny, currentDist + 1);
@@ -130,7 +131,7 @@ export class AiPlayer implements IAiPlayer {
 
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
-        if (state.board[y][x] === Player.None) {
+        if (state.board.get(x, y) === Player.None) {
           const aiDist = this.aiDistances.get(x, y);
           const humanDist = this.humanDistances.get(x, y);
 

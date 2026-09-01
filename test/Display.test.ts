@@ -1,6 +1,7 @@
 import { Display } from '../src/components/Display';
 import { GameState } from '../src/interfaces/GameState';
 import { Player } from '../src/interfaces/Player';
+import { GameBoard } from '../src/components/GameBoard';
 
 import { UIManager } from '../src/ui/UIManager';
 
@@ -67,9 +68,9 @@ describe('Display Component', () => {
   });
 
   it('renders pieces according to state', () => {
-    const board = Array(8).fill(null).map(() => Array(8).fill(Player.None));
-    board[2][1] = Player.Black;
-    board[3][4] = Player.White;
+    const board = new GameBoard();
+    board.set(1, 2, Player.Black);
+    board.set(4, 3, Player.White);
 
     const state: GameState = {
       board,

@@ -1,5 +1,7 @@
 import { GameEngine, BOARD_SIZE } from '../src/components/GameEngine';
+import { GameBoard } from '../src/components/GameBoard';
 import { Player } from '../src/interfaces/Player';
+import { GameState } from '../src/interfaces/GameState';
 
 describe('GameEngine', () => {
   let engine: GameEngine;
@@ -13,13 +15,11 @@ describe('GameEngine', () => {
       engine.initializeGame();
       const state = engine.getGameState();
 
-      expect(state.board.length).toBe(BOARD_SIZE);
-      expect(state.board[0].length).toBe(BOARD_SIZE);
-      state.board.forEach(row => {
-        row.forEach(cell => {
-          expect(cell).toBe(Player.None);
-        });
-      });
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+          expect(state.board.get(x, y)).toBe(Player.None);
+        }
+      }
 
       expect(state.turnNumber).toBe(1);
       expect(state.currentPlayer).toBe(Player.Black);
@@ -119,7 +119,7 @@ describe('GameEngine', () => {
 
       const newState = engine.getGameState();
 
-      expect(newState.board[0][0]).toBe(Player.Black); // Board updated
+      expect(newState.board.get(0, 0)).toBe(Player.Black); // Board updated
       expect(newState.currentPlayer).toBe(Player.White); // Player toggled
       expect(newState.turnNumber).toBe(2); // Turn incremented
       expect(newState.lastMove).toEqual({ x: 0, y: 0 });
@@ -177,15 +177,20 @@ describe('GameEngine', () => {
       // We will fill the whole board with White, except one Black piece which is surrounded by White.
       // So Black will have no empty spots adjacent.
 
-      const mockBoard: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.White));
-      mockBoard[3][3] = Player.Black;
-      mockBoard[0][0] = Player.None; // Make one empty spot far away for White
+      const mockBoard = new GameBoard();
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+          mockBoard.set(x, y, Player.White);
+        }
+      }
+      mockBoard.set(3, 3, Player.Black);
+      mockBoard.set(0, 0, Player.None); // Make one empty spot far away for White
 
       // Assign the state to the engine to test checkWinner easily
       // We can use a trick to inject the state, but we don't have a setter.
       // Let's test checkWinner as a pure function instead!
 
-      const mockState = {
+      const mockState: GameState = {
         board: mockBoard,
         currentPlayer: Player.Black,
         turnNumber: 7
@@ -198,11 +203,16 @@ describe('GameEngine', () => {
     });
 
     it('should assign loss correctly if current player is White and has no moves', () => {
-      const mockBoard: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.Black));
-      mockBoard[3][3] = Player.White;
-      mockBoard[0][0] = Player.None; // Make one empty spot far away for Black
+      const mockBoard = new GameBoard();
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+          mockBoard.set(x, y, Player.Black);
+        }
+      }
+      mockBoard.set(3, 3, Player.White);
+      mockBoard.set(0, 0, Player.None); // Make one empty spot far away for Black
 
-      const mockState = {
+      const mockState: GameState = {
         board: mockBoard,
         currentPlayer: Player.White,
         turnNumber: 7
