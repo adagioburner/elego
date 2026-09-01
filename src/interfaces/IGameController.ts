@@ -8,5 +8,4 @@ export interface IGameController {
   promptAiMove(): void;
   updateStats(stats: GameStats): void;
   announceResult(winner: Player): void;
-  toggleStatsPanel(show: boolean): void;
 }

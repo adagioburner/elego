@@ -134,17 +134,4 @@ export class GameController implements IGameController {
     const message = `Game Over! ${winnerName} wins!`;
     this.uiManager.addMessage(message);
   }
-
-  toggleStatsPanel(show: boolean): void {
-    // The requirement says GameController has this interface,
-    // but the actual HTML/UI toggles it directly via native dialog events in UIManager.
-    // If needed to be called programmatically:
-    if (this.uiManager.gameStatsPanel) {
-      if (show) {
-        this.uiManager.gameStatsPanel.classList.remove('hidden');
-      } else {
-        this.uiManager.gameStatsPanel.classList.add('hidden');
-      }
-    }
-  }
 }

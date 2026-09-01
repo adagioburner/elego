@@ -263,22 +263,4 @@ describe('GameController Component', () => {
       expect(uiManagerMock.updateStats).toHaveBeenCalledWith(15, 250, 0.8);
     });
   });
-
-  describe('toggleStatsPanel', () => {
-    it('shows and hides stats panel through uiManager', () => {
-      const classListMock = { remove: jest.fn(), add: jest.fn() };
-      uiManagerMock.gameStatsPanel = { classList: classListMock } as unknown as HTMLElement;
-
-      controller.toggleStatsPanel(true);
-      expect(classListMock.remove).toHaveBeenCalledWith('hidden');
-
-      controller.toggleStatsPanel(false);
-      expect(classListMock.add).toHaveBeenCalledWith('hidden');
-    });
-
-    it('does nothing if gameStatsPanel is not initialized in uiManager', () => {
-      uiManagerMock.gameStatsPanel = null;
-      expect(() => controller.toggleStatsPanel(true)).not.toThrow();
-    });
-  });
 });
