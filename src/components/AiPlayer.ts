@@ -7,6 +7,46 @@ import { MCTSNode } from '../interfaces/MCTSNode';
 import { Position } from '../interfaces/Position';
 import { BOARD_SIZE, GameEngine } from './GameEngine';
 
+const INFINITY = 999999;
+
+class DistanceMap {
+  private data: Int32Array;
+  constructor() {
+    this.data = new Int32Array(BOARD_SIZE * BOARD_SIZE);
+  }
+  get(x: number, y: number): number {
+    return this.data[y * BOARD_SIZE + x];
+  }
+  set(x: number, y: number, value: number): void {
+    this.data[y * BOARD_SIZE + x] = value;
+  }
+  fill(value: number): void {
+    this.data.fill(value);
+  }
+}
+
+class Queue {
+  private data: Int32Array;
+  private head: number = 0;
+  private tail: number = 0;
+  constructor(capacity: number) {
+    this.data = new Int32Array(capacity);
+  }
+  push(val: number): void {
+    this.data[this.tail++] = val;
+  }
+  pop(): number {
+    return this.data[this.head++];
+  }
+  get length(): number {
+    return this.tail - this.head;
+  }
+  clear(): void {
+    this.head = 0;
+    this.tail = 0;
+  }
+}
+
 export class AiPlayer implements IAiPlayer {
   private thinkTimeMs: number = 5000;
   private simulationMode: 'RandomRollout' | 'ProximityHeuristic' | 'Hybrid' = 'ProximityHeuristic';
@@ -17,41 +57,41 @@ export class AiPlayer implements IAiPlayer {
   private gameEngine: GameEngine = new GameEngine();
   private stats: AiStats = { totalNodes: 0, calculationTimeMs: 0, bestMoveWinRate: 0 };
   private aiPlayerColor: Player = Player.None;
+  private aiDistances: DistanceMap = new DistanceMap();
+  private humanDistances: DistanceMap = new DistanceMap();
+  private aiQueue: Queue = new Queue(BOARD_SIZE * BOARD_SIZE);
+  private humanQueue: Queue = new Queue(BOARD_SIZE * BOARD_SIZE);
 
   private calculateProximityScore(state: GameState, aiPlayerColor: Player): number {
     const humanPlayerColor = aiPlayerColor === Player.Black ? Player.White : Player.Black;
 
-    // Distances from every square to the nearest AI/Human piece
-    // Initialize with infinity
-    const aiDistances: number[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Infinity));
-    const humanDistances: number[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Infinity));
-
-    // Queues for BFS
-    const aiQueue: number[] = [];
-    const humanQueue: number[] = [];
+    // Prepare structures
+    this.aiDistances.fill(INFINITY);
+    this.humanDistances.fill(INFINITY);
+    this.aiQueue.clear();
+    this.humanQueue.clear();
 
     // Find initial pieces
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
         const piece = state.board[y][x];
         if (piece === aiPlayerColor) {
-          aiQueue.push(y * BOARD_SIZE + x);
-          aiDistances[y][x] = 0;
+          this.aiQueue.push(y * BOARD_SIZE + x);
+          this.aiDistances.set(x, y, 0);
         } else if (piece === humanPlayerColor) {
-          humanQueue.push(y * BOARD_SIZE + x);
-          humanDistances[y][x] = 0;
+          this.humanQueue.push(y * BOARD_SIZE + x);
+          this.humanDistances.set(x, y, 0);
         }
       }
     }
 
     // Helper for BFS
-    const runBfs = (queue: number[], distances: number[][], opponentColor: Player) => {
-      let head = 0;
-      while (head < queue.length) {
-        const packed = queue[head++];
+    const runBfs = (queue: Queue, distances: DistanceMap, opponentColor: Player) => {
+      while (queue.length > 0) {
+        const packed = queue.pop();
         const x = packed % BOARD_SIZE;
         const y = (packed - x) / BOARD_SIZE;
-        const currentDist = distances[y][x];
+        const currentDist = distances.get(x, y);
 
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
@@ -63,8 +103,8 @@ export class AiPlayer implements IAiPlayer {
               // Treat opponent's pieces as walls
               if (state.board[ny][nx] !== opponentColor) {
                 // If it's empty (or our own piece, though that would already have dist 0), check distance
-                if (distances[ny][nx] > currentDist + 1) {
-                  distances[ny][nx] = currentDist + 1;
+                if (distances.get(nx, ny) > currentDist + 1) {
+                  distances.set(nx, ny, currentDist + 1);
                   queue.push(ny * BOARD_SIZE + nx);
                 }
               }
@@ -74,8 +114,8 @@ export class AiPlayer implements IAiPlayer {
       }
     };
 
-    runBfs(aiQueue, aiDistances, humanPlayerColor);
-    runBfs(humanQueue, humanDistances, aiPlayerColor);
+    runBfs(this.aiQueue, this.aiDistances, humanPlayerColor);
+    runBfs(this.humanQueue, this.humanDistances, aiPlayerColor);
 
     let score = 0;
     let normalizationFactor = 0;
@@ -83,16 +123,16 @@ export class AiPlayer implements IAiPlayer {
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
         if (state.board[y][x] === Player.None) {
-          const aiDist = aiDistances[y][x];
-          const humanDist = humanDistances[y][x];
+          const aiDist = this.aiDistances.get(x, y);
+          const humanDist = this.humanDistances.get(x, y);
 
-          // Handle unreachable distances, which are Infinity
+          // Handle unreachable distances, which are INFINITY
           let diff = 0;
-          if (aiDist === Infinity && humanDist === Infinity) {
+          if (aiDist === INFINITY && humanDist === INFINITY) {
              diff = 0;
-          } else if (aiDist === Infinity) {
+          } else if (aiDist === INFINITY) {
              diff = -this.proximityScoreMax;
-          } else if (humanDist === Infinity) {
+          } else if (humanDist === INFINITY) {
              diff = this.proximityScoreMax;
           } else {
              diff = humanDist - aiDist;
