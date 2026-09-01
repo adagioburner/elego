@@ -3,7 +3,7 @@ import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { Player } from '../interfaces/Player';
 import { UIManager } from '../ui/UIManager';
-import { BOARD_SIZE } from './GameEngine';
+import { BOARD_SIZE } from './GameBoard';
 
 export class Display implements IDisplay {
   private boardContainer: HTMLElement;
@@ -56,7 +56,7 @@ export class Display implements IDisplay {
 
       cell.innerHTML = ''; // Clear previous piece
 
-      const player = state.board[y][x];
+      const player = state.board.get(x, y);
       if (player !== Player.None) {
         const piece = document.createElement('div');
         piece.classList.add('piece');

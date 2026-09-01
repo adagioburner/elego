@@ -2,9 +2,10 @@ import { IGameEngine } from '../interfaces/IGameEngine';
 import { GameState } from '../interfaces/GameState';
 import { Move } from '../interfaces/Move';
 import { Player } from '../interfaces/Player';
+import { GameBoard, BOARD_SIZE } from './GameBoard';
 
 const RESTRICTED_PLACEMENT_TURN_THRESHOLD = 7;
-export const BOARD_SIZE = 8;
+export { BOARD_SIZE };
 
 export class GameEngine implements IGameEngine {
   private currentState: GameState;
@@ -14,7 +15,7 @@ export class GameEngine implements IGameEngine {
   }
 
   private createInitialState(): GameState {
-    const board: Player[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Player.None));
+    const board = new GameBoard();
     return {
       board,
       currentPlayer: Player.Black,
@@ -36,7 +37,7 @@ export class GameEngine implements IGameEngine {
 
     for (let x = 0; x < BOARD_SIZE; x++) {
       for (let y = 0; y < BOARD_SIZE; y++) {
-        if (state.board[y][x] === Player.None) {
+        if (state.board.get(x, y) === Player.None) {
           if (!isMainPhase) {
             // Check for symmetric restriction on turn 2
             if (state.turnNumber === 2 && state.lastMove) {
@@ -70,7 +71,7 @@ export class GameEngine implements IGameEngine {
         const nx = x + dx;
 
         if (ny >= 0 && ny < BOARD_SIZE && nx >= 0 && nx < BOARD_SIZE) {
-          if (state.board[ny][nx] === player) {
+          if (state.board.get(nx, ny) === player) {
             return true;
           }
         }
@@ -92,8 +93,8 @@ export class GameEngine implements IGameEngine {
   }
 
   simulateMove(state: GameState, move: Move): GameState {
-    const newBoard = state.board.map(row => [...row]);
-    newBoard[move.y][move.x] = state.currentPlayer;
+    const newBoard = state.board.clone();
+    newBoard.set(move.x, move.y, state.currentPlayer);
 
     const nextPlayer = state.currentPlayer === Player.Black ? Player.White : Player.Black;
 

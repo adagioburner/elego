@@ -1,0 +1,10 @@
+
+> app@1.0.0 benchmark-perf
+> ts-node --transpile-only src/benchmark_perf.ts
+
+Running AI calculation for 3 seconds...
+--- Benchmark Results ---
+Time taken: 3000 ms
+Total nodes searched: 21432
+Nodes per second: 7144
+Performance OK! (Nodes/sec > 4500)
