@@ -27,28 +27,30 @@ export class AiPlayer implements IAiPlayer {
     const humanDistances: number[][] = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(Infinity));
 
     // Queues for BFS
-    const aiQueue: Position[] = [];
-    const humanQueue: Position[] = [];
+    const aiQueue: number[] = [];
+    const humanQueue: number[] = [];
 
     // Find initial pieces
     for (let y = 0; y < BOARD_SIZE; y++) {
       for (let x = 0; x < BOARD_SIZE; x++) {
         const piece = state.board[y][x];
         if (piece === aiPlayerColor) {
-          aiQueue.push({ x, y });
+          aiQueue.push(y * BOARD_SIZE + x);
           aiDistances[y][x] = 0;
         } else if (piece === humanPlayerColor) {
-          humanQueue.push({ x, y });
+          humanQueue.push(y * BOARD_SIZE + x);
           humanDistances[y][x] = 0;
         }
       }
     }
 
     // Helper for BFS
-    const runBfs = (queue: Position[], distances: number[][], opponentColor: Player) => {
+    const runBfs = (queue: number[], distances: number[][], opponentColor: Player) => {
       let head = 0;
       while (head < queue.length) {
-        const { x, y } = queue[head++];
+        const packed = queue[head++];
+        const x = packed % BOARD_SIZE;
+        const y = (packed - x) / BOARD_SIZE;
         const currentDist = distances[y][x];
 
         for (let dy = -1; dy <= 1; dy++) {
@@ -63,7 +65,7 @@ export class AiPlayer implements IAiPlayer {
                 // If it's empty (or our own piece, though that would already have dist 0), check distance
                 if (distances[ny][nx] > currentDist + 1) {
                   distances[ny][nx] = currentDist + 1;
-                  queue.push({ x: nx, y: ny });
+                  queue.push(ny * BOARD_SIZE + nx);
                 }
               }
             }
