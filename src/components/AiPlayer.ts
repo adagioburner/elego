@@ -39,11 +39,9 @@ class Queue {
     this.yData[this.tail] = y;
     this.tail++;
   }
-  popX(): number {
-    return this.xData[this.head];
-  }
-  popY(): number {
-    return this.yData[this.head++];
+  pop(out: { x: number; y: number }): void {
+    out.x = this.xData[this.head];
+    out.y = this.yData[this.head++];
   }
   get length(): number {
     return this.tail - this.head;
@@ -92,11 +90,14 @@ export class AiPlayer implements IAiPlayer {
       }
     }
 
+    // Temporary object to hold popped coordinates without allocation
+    const currentPos = { x: 0, y: 0 };
+
     // Helper for BFS
     const runBfs = (queue: Queue, distances: DistanceMap, opponentColor: Player) => {
       while (queue.length > 0) {
-        const x = queue.popX();
-        const y = queue.popY();
+        queue.pop(currentPos);
+        const { x, y } = currentPos;
         const currentDist = distances.get(x, y);
 
         for (let dy = -1; dy <= 1; dy++) {
