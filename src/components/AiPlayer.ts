@@ -405,6 +405,19 @@ export class AiPlayer implements IAiPlayer {
       this.aiPlayerColor = currentState.currentPlayer;
       const startTime = Date.now();
 
+      let validMovesForRoot = this.gameEngine.getValidMoves(currentState);
+
+      // Restrict first move choices for AI playing first
+      if (currentState.turnNumber === 1) {
+        validMovesForRoot = [
+          { x: 1, y: 1 },
+          { x: 1, y: 2 },
+          { x: 1, y: 3 },
+          { x: 2, y: 3 },
+          { x: 3, y: 3 }
+        ];
+      }
+
       const rootNode: MCTSNode = {
         gameState: currentState,
         parent: null,
@@ -412,7 +425,7 @@ export class AiPlayer implements IAiPlayer {
         moveFromParent: null,
         visits: 0,
         wins: 0,
-          untriedMoves: this.gameEngine.getValidMoves(currentState).map(m => ({ move: m }))
+        untriedMoves: validMovesForRoot.map(m => ({ move: m }))
       };
 
       if (rootNode.untriedMoves.length === 0) {
