@@ -4,7 +4,6 @@ import { IDisplay } from '../interfaces/IDisplay';
 import { IAiPlayer } from '../interfaces/IAiPlayer';
 import { UIManager } from '../ui/UIManager';
 import { Move } from '../interfaces/Move';
-import { GameStats } from '../interfaces/GameStats';
 import { Player } from '../interfaces/Player';
 
 export class GameController implements IGameController {
@@ -122,10 +121,6 @@ export class GameController implements IGameController {
     if (winner !== 'Ongoing') {
       this.announceResult(winner);
     }
-  }
-
-  updateStats(stats: GameStats): void {
-    this.uiManager.updateStats(stats.nodesSearched, stats.timeElapsedMs, stats.aiWinProbability);
   }
 
   announceResult(winner: Player): void {
