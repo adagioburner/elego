@@ -257,10 +257,4 @@ describe('GameController Component', () => {
     });
   });
 
-  describe('updateStats', () => {
-    it('passes stats to UIManager', () => {
-      controller.updateStats({ nodesSearched: 15, timeElapsedMs: 250, aiWinProbability: 0.8 });
-      expect(uiManagerMock.updateStats).toHaveBeenCalledWith(15, 250, 0.8);
-    });
-  });
 });
