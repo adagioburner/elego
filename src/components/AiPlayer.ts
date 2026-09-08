@@ -150,8 +150,12 @@ export class AiPlayer implements IAiPlayer {
           const clampedDiff = Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
 
           if (Math.abs(clampedDiff) >= this.proximityScoreMin) {
-            score += clampedDiff;
-            normalizationFactor += Math.abs(clampedDiff);
+            score += clampedDiff * 10;
+            normalizationFactor += Math.abs(clampedDiff) * 10;
+          } else if (diff !== 0) {
+            // Tie-breaking fractional amount (x1 weight instead of x10)
+            score += diff;
+            normalizationFactor += Math.abs(diff);
           }
         }
       }
