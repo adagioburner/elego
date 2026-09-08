@@ -150,10 +150,11 @@ export class AiPlayer implements IAiPlayer {
           const clampedDiff = Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
 
           if (Math.abs(clampedDiff) >= this.proximityScoreMin) {
-            score += clampedDiff * 10;
-            normalizationFactor += Math.abs(clampedDiff) * 10;
+            const TIEBREAKER_MULTIPLIER = 10;
+            score += clampedDiff * TIEBREAKER_MULTIPLIER;
+            normalizationFactor += Math.abs(clampedDiff) * TIEBREAKER_MULTIPLIER;
           } else if (diff !== 0) {
-            // Tie-breaking fractional amount (x1 weight instead of x10)
+            // Tie-breaking fractional amount (x1 weight instead of xTIEBREAKER_MULTIPLIER)
             score += diff;
             normalizationFactor += Math.abs(diff);
           }
