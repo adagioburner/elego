@@ -150,7 +150,7 @@ export class AiPlayer implements IAiPlayer {
           const clampedDiff = Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
 
           if (Math.abs(clampedDiff) >= this.proximityScoreMin) {
-            const TIEBREAKER_MULTIPLIER = 10;
+            const TIEBREAKER_MULTIPLIER = 100;
             score += clampedDiff * TIEBREAKER_MULTIPLIER;
             normalizationFactor += Math.abs(clampedDiff) * TIEBREAKER_MULTIPLIER;
           } else if (diff !== 0) {
