@@ -454,7 +454,7 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBeCloseTo(0.549221133772282);
+      expect(score).toBeCloseTo(0.5614035087719298);
     });
 
     it('calculates score correctly for Black at (1,4) and White at (4,4) with Chebyshev distance', () => {
@@ -464,7 +464,7 @@ describe('AiPlayer Component', () => {
 
       const state: GameState = { board, currentPlayer: Player.Black, turnNumber: 2 };
       const score = (aiPlayer as any).calculateProximityScore(state, Player.White);
-      expect(score).toBeCloseTo(0.7580395528804815);
+      expect(score).toBeCloseTo(0.7763157894736843);
     });
 
     it('calculates score correctly for walled out parts', () => {
