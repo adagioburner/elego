@@ -72,6 +72,11 @@ export class AiPlayer implements IAiPlayer {
   private calculateProximityScore(state: GameState, aiPlayerColor: Player): number {
     const humanPlayerColor = aiPlayerColor === Player.Black ? Player.White : Player.Black;
 
+    // Use INFINITY for proximityScoreMax during the early game (turns 1-6) when
+    // pieces can be placed anywhere. After turn 6, players are restricted to
+    // adjacent placements, and we revert to the configured max.
+    const effectiveProximityScoreMax = state.turnNumber < 7 ? INFINITY : this.proximityScoreMax;
+
     // Prepare structures
     this.aiDistances.fill(INFINITY);
     this.humanDistances.fill(INFINITY);
@@ -140,23 +145,18 @@ export class AiPlayer implements IAiPlayer {
           if (aiDist === INFINITY && humanDist === INFINITY) {
              diff = 0;
           } else if (aiDist === INFINITY) {
-             diff = -this.proximityScoreMax;
+             diff = -effectiveProximityScoreMax;
           } else if (humanDist === INFINITY) {
-             diff = this.proximityScoreMax;
+             diff = effectiveProximityScoreMax;
           } else {
              diff = humanDist - aiDist;
           }
 
-          const clampedDiff = Math.max(-this.proximityScoreMax, Math.min(this.proximityScoreMax, diff));
+          const clampedDiff = Math.max(-effectiveProximityScoreMax, Math.min(effectiveProximityScoreMax, diff));
 
           if (Math.abs(clampedDiff) >= this.proximityScoreMin) {
-            const TIEBREAKER_MULTIPLIER = 100;
-            score += clampedDiff * TIEBREAKER_MULTIPLIER;
-            normalizationFactor += Math.abs(clampedDiff) * TIEBREAKER_MULTIPLIER;
-          } else if (diff !== 0) {
-            // Tie-breaking fractional amount (x1 weight instead of xTIEBREAKER_MULTIPLIER)
-            score += diff;
-            normalizationFactor += Math.abs(diff);
+            score += clampedDiff;
+            normalizationFactor += Math.abs(clampedDiff);
           }
         }
       }
