@@ -72,10 +72,11 @@ export class AiPlayer implements IAiPlayer {
   private calculateProximityScore(state: GameState, aiPlayerColor: Player): number {
     const humanPlayerColor = aiPlayerColor === Player.Black ? Player.White : Player.Black;
 
-    // Use INFINITY for proximityScoreMax during the early game (turns 1-6) when
-    // pieces can be placed anywhere. After turn 6, players are restricted to
-    // adjacent placements, and we revert to the configured max.
-    const effectiveProximityScoreMax = state.turnNumber < 7 ? INFINITY : this.proximityScoreMax;
+    // Use a realistic high maximum for proximityScoreMax during the early game (turns 1-5) when
+    // pieces can be placed anywhere. After turn 5, we revert to the configured max because
+    // turn 6 will lead to restricted placements.
+    const EARLY_GAME_PROXIMITY_SCORE_MAX = 6;
+    const effectiveProximityScoreMax = state.turnNumber < 6 ? EARLY_GAME_PROXIMITY_SCORE_MAX : this.proximityScoreMax;
 
     // Prepare structures
     this.aiDistances.fill(INFINITY);
